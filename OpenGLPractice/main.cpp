@@ -16,10 +16,10 @@ int main() {
 
 	// vertice and indices to render
 	float vertices[] = {
-		// positions
-		 0.5f, -0.5f, 0.0f, // bottom right
-		-0.5f, -0.5f, 0.0f, // bottom left
-		 0.0f,  0.5f, 0.0f // top 
+		// positions         // colors
+		 0.5f, -0.5f, 0.0f,  1.0f, 0.0f, 0.0f,   // bottom right
+		-0.5f, -0.5f, 0.0f,  0.0f, 1.0f, 0.0f,   // bottom left
+		 0.0f,  0.5f, 0.0f,  0.0f, 0.0f, 1.0f    // top 
 	};
 	unsigned int indices[] = {
 		0, 1, 2
@@ -49,8 +49,11 @@ int main() {
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 	// then set our vertex attributes pointers
 	// position
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+	// color
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
 	glEnableVertexAttribArray(0);
+	glEnableVertexAttribArray(1);
 	// unbind
 	glBindVertexArray(0);
 
@@ -66,12 +69,6 @@ int main() {
 
 		// rendering commands here
 		ourShader.use();
-		// set shader program color
-		float timeValue = static_cast<float>(glfwGetTime());
-		float redValue = (sin(timeValue) / 2.0f) + 0.5f;
-		float greenValue = (sin(redValue * 3.14));
-		float blueValue = (sin(greenValue * 3.14));
-		ourShader.setVec4("color", redValue, greenValue, blueValue, 1.0f);
 		// draw the object
 		glBindVertexArray(VAO);
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
