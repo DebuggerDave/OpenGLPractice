@@ -16,6 +16,9 @@
     <Filter Include="Source Files\shaders">
       <UniqueIdentifier>{7974f74f-26f4-4972-b28b-5650bcde6e55}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\images">
+      <UniqueIdentifier>{4c53314b-6b72-4186-874c-21a1f7314290}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="glad.c">
@@ -24,12 +27,18 @@
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Shader.cpp">
+    <ClCompile Include="shader.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="stb_image.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Shader.h">
+    <ClInclude Include="stb_image.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="shader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -40,5 +49,13 @@
     <Text Include="vertexShader.glsl">
       <Filter>Source Files\shaders</Filter>
     </Text>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="container.jpg">
+      <Filter>Source Files\images</Filter>
+    </Image>
+    <Image Include="awesomeface.png">
+      <Filter>Source Files\images</Filter>
+    </Image>
   </ItemGroup>
 </Project>
