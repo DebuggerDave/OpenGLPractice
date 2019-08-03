@@ -8,6 +8,8 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow *window);
 GLFWwindow* init(int width, int height);
 
+float mixValue = 0.5f;
+
 int main() {
 
 	GLFWwindow* window;
@@ -128,12 +130,14 @@ int main() {
 		glClear(GL_COLOR_BUFFER_BIT);
 
 		// rendering commands here
-		shader.use();
 		// draw the object
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, tex1);
 		glActiveTexture(GL_TEXTURE1);
 		glBindTexture(GL_TEXTURE_2D, tex2);
+		shader.setFloat("mixValue", mixValue);
+
+		shader.use();
 		glBindVertexArray(VAO);
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 		// unbind VAO
@@ -145,6 +149,9 @@ int main() {
 	}
 
 	// release resources
+	glDeleteVertexArrays(1, &VAO);
+	glDeleteBuffers(1, &VBO);
+	glDeleteBuffers(1, &EBO);
 	glfwTerminate();
 	return 0;
 }
@@ -158,8 +165,19 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 // check if escape key was pressed
 void processInput(GLFWwindow *window)
 {
-	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-		glfwSetWindowShouldClose(window, true);
+	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
+			glfwSetWindowShouldClose(window, true);
+	}
+	if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS) {
+		if (mixValue < 1.0f) {
+			mixValue += 0.001f;
+		}
+	}
+	if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS) {
+		if (mixValue > 0.0f) {
+			mixValue -= 0.001f;
+		}
+	}
 }
 
 // init project
