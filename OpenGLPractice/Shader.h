@@ -2,6 +2,7 @@
 #define SHADER_H
 
 #include <string>
+#include <glm/glm.hpp>
 
 class Shader
 {
@@ -18,6 +19,7 @@ public:
 	void setInt(const std::string &name, int value) const;
 	void setFloat(const std::string &name, float value) const;
 	void setVec4(const std::string &name, float xValue, float yValue, float zValue, float wValue) const;
+	void setMat4(const std::string &name, glm::mat4 value) const;
 };
 
 #endif

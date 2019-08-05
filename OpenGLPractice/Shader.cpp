@@ -1,11 +1,11 @@
 #include "shader.h"
 
-#include <glad/glad.h> // include glad to get all the required OpenGL headers
-
 #include <string>
 #include <fstream>
 #include <sstream>
 #include <iostream>
+#include <glad/glad.h> // include glad to get all the required OpenGL headers
+#include <glm/gtc/type_ptr.hpp>
 
 Shader::Shader(const char* vertexPath, const char* fragmentPath)
 {
@@ -108,4 +108,8 @@ void Shader::setFloat(const std::string &name, float value) const
 void Shader::setVec4(const std::string &name, float xValue, float yValue, float zValue, float wValue) const
 {
 	glUniform4f(glGetUniformLocation(ID, name.c_str()), xValue, yValue, zValue, wValue);
+}
+void Shader::setMat4(const std::string &name, glm::mat4 value) const
+{
+	glUniformMatrix4fv(glGetUniformLocation(ID, name.c_str()), 1, GL_FALSE, glm::value_ptr(value));
 }

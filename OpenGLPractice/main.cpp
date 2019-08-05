@@ -1,6 +1,9 @@
+#include <iostream>
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-#include <iostream>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 #include "shader.h"
 #include "stb_image.h"
 
@@ -37,8 +40,8 @@ int main() {
 	unsigned int EBO;
 	glGenBuffers(1, &EBO);
 
+	// create shader object
 	Shader shader("vertexShader.glsl", "fragmentShader.glsl");
-	// set texture units
 	shader.use();
 	shader.setInt("tex1", 0);
 	shader.setInt("tex2", 1);
@@ -130,12 +133,19 @@ int main() {
 		glClear(GL_COLOR_BUFFER_BIT);
 
 		// rendering commands here
+		// create transformation matrix
+		glm::mat4 trans = glm::mat4(1.0f);
+		trans = glm::translate(trans, glm::vec3(0.5f, -0.5f, 0.0f));
+		trans = glm::rotate(trans, static_cast<float>(glfwGetTime()), glm::vec3(0.0, 0.0, 1.0));
+		//trans = glm::scale(trans, glm::vec3(0.5, 0.5, 0.5));
+
 		// draw the object
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, tex1);
 		glActiveTexture(GL_TEXTURE1);
 		glBindTexture(GL_TEXTURE_2D, tex2);
 		shader.setFloat("mixValue", mixValue);
+		shader.setMat4("transform", trans);
 
 		shader.use();
 		glBindVertexArray(VAO);
