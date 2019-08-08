@@ -15,9 +15,12 @@ float mixValue = 0.5f;
 
 int main() {
 
+	const unsigned int screenWidth = 800;
+	const unsigned int screenHeight = 600;
+
 	GLFWwindow* window;
 	try {
-		window = init(800, 600);
+		window = init(screenWidth, screenHeight);
 	} catch (std::exception e) { return -1; }
 
 	float vertices[] = {
@@ -61,12 +64,12 @@ int main() {
 	// then set our vertex attributes pointers
 	// position
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(0);
 	// color
 	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+	glEnableVertexAttribArray(1);
 	// texture
 	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
-	glEnableVertexAttribArray(0);
-	glEnableVertexAttribArray(1);
 	glEnableVertexAttribArray(2);
 	// unbind
 	glBindVertexArray(0);
@@ -77,7 +80,6 @@ int main() {
 	// create texture object
 	unsigned int tex1;
 	glGenTextures(1, &tex1);
-	// activate the texture unit first before binding texture
 	// activate the texture unit first before binding texture
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, tex1);
@@ -133,19 +135,21 @@ int main() {
 		glClear(GL_COLOR_BUFFER_BIT);
 
 		// rendering commands here
-		// create transformation matrix
-		glm::mat4 trans = glm::mat4(1.0f);
-		trans = glm::translate(trans, glm::vec3(0.5f, -0.5f, 0.0f));
-		trans = glm::rotate(trans, static_cast<float>(glfwGetTime()), glm::vec3(0.0, 0.0, 1.0));
-		//trans = glm::scale(trans, glm::vec3(0.5, 0.5, 0.5));
-
+		glm::mat4 model = glm::mat4(1.0f);
+		model = glm::rotate(model, glm::radians(-55.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+		glm::mat4 view = glm::mat4(1.0f);
+		view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
+		glm::mat4 projection;
+		projection = glm::perspective(glm::radians(45.0f), static_cast<float>(screenWidth / screenHeight), 0.1f, 100.0f);
 		// draw the object
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, tex1);
 		glActiveTexture(GL_TEXTURE1);
 		glBindTexture(GL_TEXTURE_2D, tex2);
 		shader.setFloat("mixValue", mixValue);
-		shader.setMat4("transform", trans);
+		shader.setMat4("model", model);
+		shader.setMat4("view", view);
+		shader.setMat4("projection", projection);
 
 		shader.use();
 		glBindVertexArray(VAO);
