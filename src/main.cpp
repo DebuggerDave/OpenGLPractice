@@ -12,7 +12,8 @@
 #include "shader.h"
 #include "camera.h"
 
-#define CAT_STRING(A, B) A ## B
+#define _STRINGIFY(x) #x
+#define STRINGIFY(x) _STRINGIFY(x)
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
@@ -77,7 +78,7 @@ int main()
 
 	// build and compile our shader program
 	// ------------------------------------
-	Shader ourShader(CAT_STRING(SRC_DIR, "/glsl/vertexShader.glsl"), CAT_STRING(SRC_DIR, "/glsl/fragmentShader.glsl"));
+	Shader ourShader(STRINGIFY(SRC_DIR) "/glsl/vertexShader.glsl", STRINGIFY(SRC_DIR) "/glsl/fragmentShader.glsl");
 
 	// set up vertex data (and buffer(s)) and configure vertex attributes
 	// ------------------------------------------------------------------
@@ -170,7 +171,7 @@ int main()
 	// load image, create texture and generate mipmaps
 	int width, height, nrChannels;
 	stbi_set_flip_vertically_on_load(true); // tell stb_image.h to flip loaded texture's on the y-axis.
-	unsigned char *data = stbi_load(CAT_STRING(SRC_DIR, "/img/container.jpg"), &width, &height, &nrChannels, 0);
+	unsigned char *data = stbi_load(STRINGIFY(SRC_DIR) "/img/container.jpg", &width, &height, &nrChannels, 0);
 	if (data)
 	{
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
@@ -192,7 +193,7 @@ int main()
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	// load image, create texture and generate mipmaps
-	data = stbi_load(CAT_STRING(SRC_DIR, "/img/awesomeface.png"), &width, &height, &nrChannels, 0);
+	data = stbi_load(STRINGIFY(SRC_DIR) "/img/awesomeface.png", &width, &height, &nrChannels, 0);
 	if (data)
 	{
 		// note that the awesomeface.png has transparency and thus an alpha channel, so make sure to tell OpenGL the data type is of GL_RGBA
