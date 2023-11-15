@@ -17,7 +17,9 @@ public:
 		moveForward,
 		moveBackward,
 		moveLeft,
-		moveRight
+		moveRight,
+		moveUp,
+		moveDown
 	};
 
 	// Camera Attributes

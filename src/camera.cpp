@@ -45,6 +45,10 @@ void Camera::processMovement(Movement direction, float deltaTime)
 		position -= right * velocity;
 	if (direction == moveRight)
 		position += right * velocity;
+	if (direction == moveUp)
+		position += up * velocity;
+	if (direction == moveDown)
+		position -= up * velocity;
 }
 
 void Camera::processRotation(float xoffset, float yoffset, GLboolean constrainPitch)
