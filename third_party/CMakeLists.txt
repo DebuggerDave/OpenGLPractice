@@ -16,3 +16,7 @@ target_include_directories(opengl_practice PUBLIC
 #glm
 add_subdirectory(glm)
 target_link_libraries(opengl_practice glm::glm)
+
+#std
+target_include_directories(opengl_practice PUBLIC
+                            ${CMAKE_CURRENT_SOURCE_DIR}/stb)
