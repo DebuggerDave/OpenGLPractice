@@ -87,18 +87,25 @@ int main()
 	using json = nlohmann::json;
 	std::ifstream f(STRINGIFY(SRC_DIR) "/img/texture.json");
 	json texMeta = json::parse(f)["meta"];
-	int widthPixels, heightPixels, dirtStartX, dirtEndX, dirtStartY, dirtEndY;
+	int widthPixels, heightPixels, dirtHeight, dirtWidth, dirtStartX, dirtStartY;
 	widthPixels = static_cast<int>(texMeta["size"]["w"].template get<double>());
-	//heightPixels = static_cast<int>(texMeta["size"]["h"].template get<double>());
+	heightPixels = static_cast<int>(texMeta["size"]["h"].template get<double>());
 	json slices = texMeta["slices"];
 	for (int i=0; i<slices.size(); i++) {
 		if (strcmp(slices[i]["name"].template get<std::string>().c_str(), "dirt") == 0) {
 			dirtStartX = static_cast<int>(slices[i]["keys"][0]["bounds"]["x"].template get<double>());
-			dirtStartY = static_cast<int>(slices[i]["keys"][0]["bounds"]["y"].template get<double>());
-			dirtEndX = dirtStartX + static_cast<int>(slices[i]["keys"][0]["bounds"]["w"].template get<double>());
-			dirtEndY = dirtStartY + static_cast<int>(slices[i]["keys"][0]["bounds"]["h"].template get<double>());
+			dirtStartY = heightPixels - (static_cast<int>(slices[i]["keys"][0]["bounds"]["y"].template get<double>()) + static_cast<int>(slices[i]["keys"][0]["bounds"]["h"].template get<double>()));
+			dirtWidth = static_cast<int>(slices[i]["keys"][0]["bounds"]["w"].template get<double>());
+			dirtHeight = static_cast<int>(slices[i]["keys"][0]["bounds"]["h"].template get<double>());
 		}
 	}
+
+	float dirtStartXPerc = dirtStartX/static_cast<float>(widthPixels);
+	float dirtEndXPerc = (dirtStartX+dirtWidth)/static_cast<float>(widthPixels);
+	float dirtStartYPerc = dirtStartY/static_cast<float>(heightPixels);
+	float dirtEndYPerc = (dirtStartY+dirtHeight)/static_cast<float>(heightPixels);
+	float dirtXPerc = dirtWidth/static_cast<float>(widthPixels);
+	float dirtYPerc = dirtHeight/static_cast<float>(heightPixels);
 
 	// load image, create texture and generate mipmaps
 	int width, height, nrChannels;
@@ -118,69 +125,71 @@ int main()
 	// set up vertex data (and buffer(s)) and configure vertex attributes
 	// ------------------------------------------------------------------
 	float vertices[] = {
-		-0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
-		 0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
-		 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-		 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-		-0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-		-0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
-
-		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-		 0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-		 0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-		 0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-		-0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
-		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-
-		-0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-		-0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-		-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-		-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-		-0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-
-		 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-		 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-		 0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-		 0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-		 0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-		 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-
-		-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-		 0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
-		 0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-		 0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-		-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-
-		-0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-		 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-		 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-		 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-		-0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
-		-0.5f,  0.5f, -0.5f,  0.0f, 1.0f
+		// front face
+		-0.5f, -0.5f, -0.5f, dirtStartXPerc + (dirtXPerc*1/4), dirtStartYPerc + (dirtYPerc*1/3), // bottom left
+		 0.5f, -0.5f, -0.5f, dirtStartXPerc + (dirtXPerc*2/4), dirtStartYPerc + (dirtYPerc*1/3), // bottom right
+		 0.5f,  0.5f, -0.5f, dirtStartXPerc + (dirtXPerc*2/4), dirtStartYPerc + (dirtYPerc*2/3), // top right
+		-0.5f,  0.5f, -0.5f, dirtStartXPerc + (dirtXPerc*1/4), dirtStartYPerc + (dirtYPerc*2/3), // top left
+		// back face
+		 0.5f, -0.5f,  0.5f, dirtStartXPerc + (dirtXPerc*3/4), dirtStartYPerc + (dirtYPerc*1/3), // bottom left
+		-0.5f, -0.5f,  0.5f, dirtStartXPerc + (dirtXPerc*4/4), dirtStartYPerc + (dirtYPerc*1/3), // bottom right
+		-0.5f,  0.5f,  0.5f, dirtStartXPerc + (dirtXPerc*4/4), dirtStartYPerc + (dirtYPerc*2/3), // top right
+		 0.5f,  0.5f,  0.5f, dirtStartXPerc + (dirtXPerc*3/4), dirtStartYPerc + (dirtYPerc*2/3), // top left
+		// left face
+		-0.5f, -0.5f, -0.5f, dirtStartXPerc + (dirtXPerc*0/4), dirtStartYPerc + (dirtYPerc*1/3), // bottom left
+		-0.5f, -0.5f,  0.5f, dirtStartXPerc + (dirtXPerc*1/4), dirtStartYPerc + (dirtYPerc*1/3), // bottom right
+		-0.5f,  0.5f,  0.5f, dirtStartXPerc + (dirtXPerc*1/4), dirtStartYPerc + (dirtYPerc*2/3), // top right
+		-0.5f,  0.5f, -0.5f, dirtStartXPerc + (dirtXPerc*0/4), dirtStartYPerc + (dirtYPerc*2/3), // top left
+		// right face
+		 0.5f, -0.5f,  0.5f, dirtStartXPerc + (dirtXPerc*2/4), dirtStartYPerc + (dirtYPerc*1/3), // bottom left
+		 0.5f, -0.5f, -0.5f, dirtStartXPerc + (dirtXPerc*3/4), dirtStartYPerc + (dirtYPerc*1/3), // bottom right
+		 0.5f,  0.5f, -0.5f, dirtStartXPerc + (dirtXPerc*3/4), dirtStartYPerc + (dirtYPerc*2/3), // top right
+		 0.5f,  0.5f,  0.5f, dirtStartXPerc + (dirtXPerc*2/4), dirtStartYPerc + (dirtYPerc*2/3), // top left
+		// bottom face
+		-0.5f, -0.5f, -0.5f, dirtStartXPerc + (dirtXPerc*1/4), dirtStartYPerc + (dirtYPerc*0/3), // bottom left
+		 0.5f, -0.5f, -0.5f, dirtStartXPerc + (dirtXPerc*2/4), dirtStartYPerc + (dirtYPerc*0/3), // bottom right
+		-0.5f, -0.5f,  0.5f, dirtStartXPerc + (dirtXPerc*2/4), dirtStartYPerc + (dirtYPerc*1/3), // top right
+		 0.5f, -0.5f,  0.5f, dirtStartXPerc + (dirtXPerc*1/4), dirtStartYPerc + (dirtYPerc*1/3), // top left
+		// top face
+		-0.5f,  0.5f,  0.5f, dirtStartXPerc + (dirtXPerc*1/4), dirtStartYPerc + (dirtYPerc*2/3), // bottom left
+		 0.5f,  0.5f,  0.5f, dirtStartXPerc + (dirtXPerc*2/4), dirtStartYPerc + (dirtYPerc*2/3), // bottom right
+		 0.5f,  0.5f, -0.5f, dirtStartXPerc + (dirtXPerc*2/4), dirtStartYPerc + (dirtYPerc*3/3), // top right
+		-0.5f,  0.5f, -0.5f, dirtStartXPerc + (dirtXPerc*1/4), dirtStartYPerc + (dirtYPerc*3/3), // top left
 	};
 	// world space positions of our cubes
 	glm::vec3 cubePositions[] = {
-		glm::vec3(0.0f,  0.0f,  0.0f),
-		glm::vec3(2.0f,  5.0f, -15.0f),
+		glm::vec3( 0.0f,  0.0f,  0.0f),
+		glm::vec3( 2.0f,  5.0f, -15.0f),
 		glm::vec3(-1.5f, -2.2f, -2.5f),
 		glm::vec3(-3.8f, -2.0f, -12.3f),
-		glm::vec3(2.4f, -0.4f, -3.5f),
+		glm::vec3( 2.4f, -0.4f, -3.5f),
 		glm::vec3(-1.7f,  3.0f, -7.5f),
-		glm::vec3(1.3f, -2.0f, -2.5f),
-		glm::vec3(1.5f,  2.0f, -2.5f),
-		glm::vec3(1.5f,  0.2f, -1.5f),
+		glm::vec3( 1.3f, -2.0f, -2.5f),
+		glm::vec3( 1.5f,  2.0f, -2.5f),
+		glm::vec3( 1.5f,  0.2f, -1.5f),
 		glm::vec3(-1.3f,  1.0f, -1.5f)
+	};
+	unsigned int indices[] = {
+		0 , 1 , 3 , 1 , 2 , 3,
+		4 , 5 , 7 , 5 , 6 , 7,
+		8 , 9 , 11, 9 , 10, 11,
+		12, 13, 15, 13, 14, 15,
+		16, 17, 19, 17, 18, 19,
+		20, 21, 23, 21, 22, 23
 	};
 	unsigned int VBO, VAO;
 	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO);
 
+	unsigned int EBO;
+	glGenBuffers(1, &EBO);
+
 	glBindVertexArray(VAO);
 
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
 	// position attribute
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
@@ -240,7 +249,7 @@ int main()
 			model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
 			ourShader.setMat4("model", model);
 
-			glDrawArrays(GL_TRIANGLES, 0, 36);
+			glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
 		}
 
 		// glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
