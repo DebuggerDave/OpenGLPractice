@@ -43,6 +43,3 @@ set(ASSIMP_BUILD_ASSIMP_VIEW OFF)
 set(ASSIMP_IGNORE_GIT_HASH ON)
 add_subdirectory(assimp)
 target_link_libraries(opengl_practice PRIVATE assimp)
-
-# aseprite
-add_subdirectory(aseprite)
