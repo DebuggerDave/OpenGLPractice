@@ -70,47 +70,70 @@ int main()
 	// Make sure fragment scene depth is calculated properly
 	glEnable(GL_DEPTH_TEST);
 
-	// load and create a texture 
-	// -------------------------
-	unsigned int texture;
-	// texture 1
-	// ---------
-	glGenTextures(1, &texture);
-	glBindTexture(GL_TEXTURE_2D, texture);
+	// create top texture
+	unsigned int top_texture;
+	glGenTextures(1, &top_texture);
+	glBindTexture(GL_TEXTURE_2D, top_texture);
 	// set the texture wrapping parameters
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 	// set texture filtering parameters
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	// texture metadata
-	using json = nlohmann::json;
-	std::ifstream f(STRINGIFY(SRC_DIR) "/img/texture.json");
-	json texMeta = json::parse(f)["meta"];
-	int widthPixels, heightPixels, dirtHeight, dirtWidth, dirtStartX, dirtStartY;
-	widthPixels = static_cast<int>(texMeta["size"]["w"].template get<double>());
-	heightPixels = static_cast<int>(texMeta["size"]["h"].template get<double>());
-	json slices = texMeta["slices"];
-	for (int i=0; i<slices.size(); i++) {
-		if (strcmp(slices[i]["name"].template get<std::string>().c_str(), "dirt") == 0) {
-			dirtStartX = static_cast<int>(slices[i]["keys"][0]["bounds"]["x"].template get<double>());
-			dirtStartY = heightPixels - (static_cast<int>(slices[i]["keys"][0]["bounds"]["y"].template get<double>()) + static_cast<int>(slices[i]["keys"][0]["bounds"]["h"].template get<double>()));
-			dirtWidth = static_cast<int>(slices[i]["keys"][0]["bounds"]["w"].template get<double>());
-			dirtHeight = static_cast<int>(slices[i]["keys"][0]["bounds"]["h"].template get<double>());
-		}
-	}
-
-	float dirtStartXPerc = dirtStartX/static_cast<float>(widthPixels);
-	float dirtEndXPerc = (dirtStartX+dirtWidth)/static_cast<float>(widthPixels);
-	float dirtStartYPerc = dirtStartY/static_cast<float>(heightPixels);
-	float dirtEndYPerc = (dirtStartY+dirtHeight)/static_cast<float>(heightPixels);
-	float dirtXPerc = dirtWidth/static_cast<float>(widthPixels);
-	float dirtYPerc = dirtHeight/static_cast<float>(heightPixels);
-
 	// load image, create texture and generate mipmaps
-	int width, height, nrChannels;
 	stbi_set_flip_vertically_on_load(true); // tell stb_image.h to flip loaded texture's on the y-axis.
-	unsigned char *data = stbi_load(STRINGIFY(SRC_DIR) "/img/texture.png", &width, &height, &nrChannels, 0);
+	int width, height, nrChannels = 0;
+	unsigned char *data = stbi_load(STRINGIFY(BINARY_DIR) "/img/grass_top.png", &width, &height, &nrChannels, 0);
+	if (data)
+	{
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+		glGenerateMipmap(GL_TEXTURE_2D);
+	}
+	else
+	{
+		std::cout << "Failed to load texture" << std::endl;
+	}
+	stbi_image_free(data);
+
+	// create side texture
+	unsigned int side_texture;
+	glGenTextures(1, &side_texture);
+	glBindTexture(GL_TEXTURE_2D, side_texture);
+	// set the texture wrapping parameters
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	// set texture filtering parameters
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	// load image, create texture and generate mipmaps
+	stbi_set_flip_vertically_on_load(true); // tell stb_image.h to flip loaded texture's on the y-axis.
+	width = 0, height = 0, nrChannels = 0; data = nullptr;
+	data = stbi_load(STRINGIFY(BINARY_DIR) "/img/grass_side.png", &width, &height, &nrChannels, 0);
+	if (data)
+	{
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+		glGenerateMipmap(GL_TEXTURE_2D);
+	}
+	else
+	{
+		std::cout << "Failed to load texture" << std::endl;
+	}
+	stbi_image_free(data);
+
+	// create bottom texture
+	unsigned int bottom_texture;
+	glGenTextures(1, &bottom_texture);
+	glBindTexture(GL_TEXTURE_2D, bottom_texture);
+	// set the texture wrapping parameters
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	// set texture filtering parameters
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	// load image, create texture and generate mipmaps
+	stbi_set_flip_vertically_on_load(true); // tell stb_image.h to flip loaded texture's on the y-axis.
+	width = 0; height = 0; nrChannels = 0; data = nullptr;
+	data = stbi_load(STRINGIFY(BINARY_DIR) "/img/grass_bottom.png", &width, &height, &nrChannels, 0);
 	if (data)
 	{
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
@@ -126,35 +149,36 @@ int main()
 	// ------------------------------------------------------------------
 	float vertices[] = {
 		// front face
-		-0.5f, -0.5f, -0.5f, dirtStartXPerc + (dirtXPerc*1/4), dirtStartYPerc + (dirtYPerc*1/3), // bottom left
-		 0.5f, -0.5f, -0.5f, dirtStartXPerc + (dirtXPerc*2/4), dirtStartYPerc + (dirtYPerc*1/3), // bottom right
-		 0.5f,  0.5f, -0.5f, dirtStartXPerc + (dirtXPerc*2/4), dirtStartYPerc + (dirtYPerc*2/3), // top right
-		-0.5f,  0.5f, -0.5f, dirtStartXPerc + (dirtXPerc*1/4), dirtStartYPerc + (dirtYPerc*2/3), // top left
+		-0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  0.0f,  0.0f, // bottom left
+		 0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  1.0f,  0.0f, // bottom right
+		 0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  1.0f,  1.0f, // top right
+		-0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  0.0f,  1.0f, // top left
 		// back face
-		 0.5f, -0.5f,  0.5f, dirtStartXPerc + (dirtXPerc*3/4), dirtStartYPerc + (dirtYPerc*1/3), // bottom left
-		-0.5f, -0.5f,  0.5f, dirtStartXPerc + (dirtXPerc*4/4), dirtStartYPerc + (dirtYPerc*1/3), // bottom right
-		-0.5f,  0.5f,  0.5f, dirtStartXPerc + (dirtXPerc*4/4), dirtStartYPerc + (dirtYPerc*2/3), // top right
-		 0.5f,  0.5f,  0.5f, dirtStartXPerc + (dirtXPerc*3/4), dirtStartYPerc + (dirtYPerc*2/3), // top left
+		 0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f,  0.0f, // bottom left
+		-0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f,  0.0f, // bottom right
+		-0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f,  1.0f, // top right
+		 0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f,  1.0f, // top left
 		// left face
-		-0.5f, -0.5f, -0.5f, dirtStartXPerc + (dirtXPerc*0/4), dirtStartYPerc + (dirtYPerc*1/3), // bottom left
-		-0.5f, -0.5f,  0.5f, dirtStartXPerc + (dirtXPerc*1/4), dirtStartYPerc + (dirtYPerc*1/3), // bottom right
-		-0.5f,  0.5f,  0.5f, dirtStartXPerc + (dirtXPerc*1/4), dirtStartYPerc + (dirtYPerc*2/3), // top right
-		-0.5f,  0.5f, -0.5f, dirtStartXPerc + (dirtXPerc*0/4), dirtStartYPerc + (dirtYPerc*2/3), // top left
+		-0.5f, -0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  0.0f,  0.0f, // bottom left
+		-0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  1.0f,  0.0f, // bottom right
+		-0.5f,  0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  1.0f,  1.0f, // top right
+		-0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  0.0f,  1.0f, // top left
 		// right face
-		 0.5f, -0.5f,  0.5f, dirtStartXPerc + (dirtXPerc*2/4), dirtStartYPerc + (dirtYPerc*1/3), // bottom left
-		 0.5f, -0.5f, -0.5f, dirtStartXPerc + (dirtXPerc*3/4), dirtStartYPerc + (dirtYPerc*1/3), // bottom right
-		 0.5f,  0.5f, -0.5f, dirtStartXPerc + (dirtXPerc*3/4), dirtStartYPerc + (dirtYPerc*2/3), // top right
-		 0.5f,  0.5f,  0.5f, dirtStartXPerc + (dirtXPerc*2/4), dirtStartYPerc + (dirtYPerc*2/3), // top left
+		 0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f,  0.0f, // bottom left
+		 0.5f, -0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f,  0.0f, // bottom right
+		 0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f,  1.0f, // top right
+		 0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f,  1.0f, // top left
 		// bottom face
-		-0.5f, -0.5f, -0.5f, dirtStartXPerc + (dirtXPerc*1/4), dirtStartYPerc + (dirtYPerc*0/3), // bottom left
-		 0.5f, -0.5f, -0.5f, dirtStartXPerc + (dirtXPerc*2/4), dirtStartYPerc + (dirtYPerc*0/3), // bottom right
-		-0.5f, -0.5f,  0.5f, dirtStartXPerc + (dirtXPerc*2/4), dirtStartYPerc + (dirtYPerc*1/3), // top right
-		 0.5f, -0.5f,  0.5f, dirtStartXPerc + (dirtXPerc*1/4), dirtStartYPerc + (dirtYPerc*1/3), // top left
+		-0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  0.0f,  0.0f, // bottom left
+		 0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  1.0f,  0.0f, // bottom right
+		 0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f,  1.0f, // top right
+		-0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  0.0f,  1.0f, // top left
 		// top face
-		-0.5f,  0.5f,  0.5f, dirtStartXPerc + (dirtXPerc*1/4), dirtStartYPerc + (dirtYPerc*2/3), // bottom left
-		 0.5f,  0.5f,  0.5f, dirtStartXPerc + (dirtXPerc*2/4), dirtStartYPerc + (dirtYPerc*2/3), // bottom right
-		 0.5f,  0.5f, -0.5f, dirtStartXPerc + (dirtXPerc*2/4), dirtStartYPerc + (dirtYPerc*3/3), // top right
-		-0.5f,  0.5f, -0.5f, dirtStartXPerc + (dirtXPerc*1/4), dirtStartYPerc + (dirtYPerc*3/3), // top left
+		-0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  0.0f,  0.0f, // bottom left
+		 0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f,  0.0f, // bottom right
+		 0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  1.0f,  1.0f, // top right
+		-0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f,  1.0f, // top left
+
 	};
 	// world space positions of our cubes
 	glm::vec3 cubePositions[] = {
@@ -192,16 +216,21 @@ int main()
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
 	// position attribute
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
 	glEnableVertexAttribArray(0);
-	// texture coord attribute
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+	// normal attribute
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
 	glEnableVertexAttribArray(1);
+	// texture coord attribute
+	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+	glEnableVertexAttribArray(2);
 
-	Shader ourShader(STRINGIFY(SRC_DIR) "/glsl/vertexShader.glsl", STRINGIFY(SRC_DIR) "/glsl/fragmentShader.glsl");
+	Shader ourShader(STRINGIFY(BINARY_DIR) "/glsl/vertexShader.glsl", STRINGIFY(BINARY_DIR) "/glsl/fragmentShader.glsl");
 	ourShader.use();
 	// Set to texture unit 0
-	ourShader.setInt("texture", 0);
+	ourShader.setInt("top_texture", 0);
+	ourShader.setInt("side_texture", 1);
+	ourShader.setInt("bottom_texture", 2);
 
 	// render loop
 	// -----------
@@ -224,7 +253,11 @@ int main()
 
 		// bind textures on corresponding texture units
 		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, texture);
+		glBindTexture(GL_TEXTURE_2D, top_texture);
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, side_texture);
+		glActiveTexture(GL_TEXTURE2);
+		glBindTexture(GL_TEXTURE_2D, bottom_texture);
 
 		// activate shader
 		ourShader.use();
