@@ -201,6 +201,7 @@ int main()
 		16, 17, 19, 17, 18, 19,
 		20, 21, 23, 21, 22, 23
 	};
+
 	unsigned int VBO, VAO;
 	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO);
@@ -225,33 +226,49 @@ int main()
 	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
 	glEnableVertexAttribArray(2);
 
-	Shader ourShader(STRINGIFY(BINARY_DIR) "/glsl/vertexShader.glsl", STRINGIFY(BINARY_DIR) "/glsl/fragmentShader.glsl");
-	ourShader.use();
+	unsigned int lightVAO;
+	glGenVertexArrays(1, &lightVAO);
+	glBindVertexArray(lightVAO);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+	// we only need to bind to the VBO, the container's VBO's data already contains the data.
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	// position attribute
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(0);
+	// normal attribute
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+	glEnableVertexAttribArray(1);
+	// texture coord attribute
+	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+	glEnableVertexAttribArray(2);
+
+	Shader default_shader(STRINGIFY(BINARY_DIR) "/glsl/default_vert.glsl", STRINGIFY(BINARY_DIR) "/glsl/default_frag.glsl");
+	default_shader.use();
 	// Set to texture unit 0
-	ourShader.setInt("top_texture", 0);
-	ourShader.setInt("side_texture", 1);
-	ourShader.setInt("bottom_texture", 2);
+	default_shader.setInt("top_texture", 0);
+	default_shader.setInt("side_texture", 1);
+	default_shader.setInt("bottom_texture", 2);
+
+
+	Shader light_shader(STRINGIFY(BINARY_DIR) "/glsl/light_vert.glsl", STRINGIFY(BINARY_DIR) "/glsl/light_frag.glsl");
+	light_shader.use();
 
 	// render loop
-	// -----------
 	while (!glfwWindowShouldClose(window))
 	{
 		// per-frame time logic
-		// --------------------
 		float currentFrame = glfwGetTime();
 		deltaTime = currentFrame - lastFrame;
 		lastFrame = currentFrame;
 		
 		// input
-		// -----
 		processInput(window);
 
-		// render
-		// ------
+		// start rendering
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		// bind textures on corresponding texture units
+		// bind textures
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, top_texture);
 		glActiveTexture(GL_TEXTURE1);
@@ -259,18 +276,28 @@ int main()
 		glActiveTexture(GL_TEXTURE2);
 		glBindTexture(GL_TEXTURE_2D, bottom_texture);
 
-		// activate shader
-		ourShader.use();
-
-		// pass projection matrix to shader (note that in this case it could change every frame)
+		// transformations
 		glm::mat4 projection = glm::perspective(glm::radians(camera.zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
-		
-		ourShader.setMat4("projection", projection);
-
-		// camera/view transformation
 		glm::mat4 view = camera.getViewMatrix();
-		ourShader.setMat4("view", view);
 
+		light_shader.use();
+		glBindVertexArray(lightVAO);
+		glm::vec3 light_pos(1.2f, 1.0f, 2.0f);
+		glm::mat4 model = glm::mat4(1.0f);
+		model = glm::translate(model, light_pos);
+		model = glm::scale(model, glm::vec3(0.2f));
+		glm::vec3 light_color(1.0f, 1.0f, 1.0f);
+		light_shader.setVec3("light_color", light_color);
+		light_shader.setMat4("model", model);
+		light_shader.setMat4("view", view);
+		light_shader.setMat4("projection", projection);
+		glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+
+		default_shader.use();
+		default_shader.setVec3("light_color", light_color);
+		default_shader.setVec3("light_pos_world_space", light_pos);
+		default_shader.setMat4("view", view);
+		default_shader.setMat4("projection", projection);
 		// render boxes
 		glBindVertexArray(VAO);
 		for (unsigned int i = 0; i < 10; i++)
@@ -280,13 +307,12 @@ int main()
 			model = glm::translate(model, cubePositions[i]);
 			float angle = 20.0f * i;
 			model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
-			ourShader.setMat4("model", model);
+			default_shader.setMat4("model", model);
 
 			glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
 		}
 
 		// glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
-		// -------------------------------------------------------------------------------
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 	}

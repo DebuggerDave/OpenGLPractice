@@ -1,6 +1,8 @@
 set(COPYABLE_SHADERS
-	"${CMAKE_CURRENT_SOURCE_DIR}/fragmentShader.glsl"
-	"${CMAKE_CURRENT_SOURCE_DIR}/vertexShader.glsl"
+	"${CMAKE_CURRENT_SOURCE_DIR}/default_frag.glsl"
+	"${CMAKE_CURRENT_SOURCE_DIR}/default_vert.glsl"
+	"${CMAKE_CURRENT_SOURCE_DIR}/light_frag.glsl"
+	"${CMAKE_CURRENT_SOURCE_DIR}/light_vert.glsl"
 )
 set(DEPS "")
 
