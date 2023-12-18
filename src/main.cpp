@@ -21,7 +21,8 @@
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
-void processInput(GLFWwindow *window);
+void process_input(GLFWwindow* window);
+void setup_tex(unsigned int& tex, const char* file_path);
 
 // settings
 const unsigned int SCR_WIDTH = 1280;
@@ -70,83 +71,20 @@ int main()
 	// Make sure fragment scene depth is calculated properly
 	glEnable(GL_DEPTH_TEST);
 
-	// create top texture
-	unsigned int top_texture;
-	glGenTextures(1, &top_texture);
-	glBindTexture(GL_TEXTURE_2D, top_texture);
-	// set the texture wrapping parameters
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	// set texture filtering parameters
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	// load image, create texture and generate mipmaps
-	stbi_set_flip_vertically_on_load(true); // tell stb_image.h to flip loaded texture's on the y-axis.
-	int width, height, nrChannels = 0;
-	unsigned char *data = stbi_load(STRINGIFY(BINARY_DIR) "/img/grass_top.png", &width, &height, &nrChannels, 0);
-	if (data)
-	{
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
-		glGenerateMipmap(GL_TEXTURE_2D);
-	}
-	else
-	{
-		std::cout << "Failed to load texture" << std::endl;
-	}
-	stbi_image_free(data);
-
-	// create side texture
-	unsigned int side_texture;
-	glGenTextures(1, &side_texture);
-	glBindTexture(GL_TEXTURE_2D, side_texture);
-	// set the texture wrapping parameters
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	// set texture filtering parameters
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	// load image, create texture and generate mipmaps
-	stbi_set_flip_vertically_on_load(true); // tell stb_image.h to flip loaded texture's on the y-axis.
-	width = 0, height = 0, nrChannels = 0; data = nullptr;
-	data = stbi_load(STRINGIFY(BINARY_DIR) "/img/grass_side.png", &width, &height, &nrChannels, 0);
-	if (data)
-	{
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
-		glGenerateMipmap(GL_TEXTURE_2D);
-	}
-	else
-	{
-		std::cout << "Failed to load texture" << std::endl;
-	}
-	stbi_image_free(data);
-
-	// create bottom texture
-	unsigned int bottom_texture;
-	glGenTextures(1, &bottom_texture);
-	glBindTexture(GL_TEXTURE_2D, bottom_texture);
-	// set the texture wrapping parameters
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	// set texture filtering parameters
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	// load image, create texture and generate mipmaps
-	stbi_set_flip_vertically_on_load(true); // tell stb_image.h to flip loaded texture's on the y-axis.
-	width = 0; height = 0; nrChannels = 0; data = nullptr;
-	data = stbi_load(STRINGIFY(BINARY_DIR) "/img/grass_bottom.png", &width, &height, &nrChannels, 0);
-	if (data)
-	{
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
-		glGenerateMipmap(GL_TEXTURE_2D);
-	}
-	else
-	{
-		std::cout << "Failed to load texture" << std::endl;
-	}
-	stbi_image_free(data);
+	unsigned int top_diffuse;
+	setup_tex(top_diffuse, STRINGIFY(BINARY_DIR) "/img/grass_top.png");
+	unsigned int side_diffuse;
+	setup_tex(side_diffuse, STRINGIFY(BINARY_DIR) "/img/grass_side.png");
+	unsigned int bottom_diffuse;
+	setup_tex(bottom_diffuse, STRINGIFY(BINARY_DIR) "/img/grass_bottom.png");
+	unsigned int top_specular;
+	setup_tex(top_specular, STRINGIFY(BINARY_DIR) "/img/grass_top_specular.png");
+	unsigned int side_specular;
+	setup_tex(side_specular, STRINGIFY(BINARY_DIR) "/img/grass_side_specular.png");
+	unsigned int bottom_specular;
+	setup_tex(bottom_specular, STRINGIFY(BINARY_DIR) "/img/grass_bottom_specular.png");
 
 	// set up vertex data (and buffer(s)) and configure vertex attributes
-	// ------------------------------------------------------------------
 	float vertices[] = {
 		// front face
 		-0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  0.0f,  0.0f, // bottom left
@@ -244,11 +182,16 @@ int main()
 
 	Shader default_shader(STRINGIFY(BINARY_DIR) "/glsl/default_vert.glsl", STRINGIFY(BINARY_DIR) "/glsl/default_frag.glsl");
 	default_shader.use();
-	// Set to texture unit 0
-	default_shader.setInt("top_texture", 0);
-	default_shader.setInt("side_texture", 1);
-	default_shader.setInt("bottom_texture", 2);
-
+	// Texture units
+	default_shader.setInt("top_material.diffuse", 0);
+	default_shader.setInt("side_material.diffuse", 1);
+	default_shader.setInt("bottom_material.diffuse", 2);
+	default_shader.setInt("top_material.specular", 3);
+	default_shader.setInt("side_material.specular", 4);
+	default_shader.setInt("bottom_material.specular", 5);
+	default_shader.setFloat("top_material.shininess", 8);
+	default_shader.setFloat("side_material.shininess", 8);
+	default_shader.setFloat("bottom_material.shininess", 8);
 
 	Shader light_shader(STRINGIFY(BINARY_DIR) "/glsl/light_vert.glsl", STRINGIFY(BINARY_DIR) "/glsl/light_frag.glsl");
 	light_shader.use();
@@ -260,9 +203,8 @@ int main()
 		float currentFrame = glfwGetTime();
 		deltaTime = currentFrame - lastFrame;
 		lastFrame = currentFrame;
-		
 		// input
-		processInput(window);
+		process_input(window);
 
 		// start rendering
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
@@ -270,11 +212,18 @@ int main()
 
 		// bind textures
 		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, top_texture);
+		glBindTexture(GL_TEXTURE_2D, top_diffuse);
 		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_2D, side_texture);
+		glBindTexture(GL_TEXTURE_2D, side_diffuse);
 		glActiveTexture(GL_TEXTURE2);
-		glBindTexture(GL_TEXTURE_2D, bottom_texture);
+		glBindTexture(GL_TEXTURE_2D, bottom_diffuse);
+		glActiveTexture(GL_TEXTURE3);
+		glBindTexture(GL_TEXTURE_2D, top_specular);
+		glActiveTexture(GL_TEXTURE4);
+		glBindTexture(GL_TEXTURE_2D, side_specular);
+		glActiveTexture(GL_TEXTURE5);
+		glBindTexture(GL_TEXTURE_2D, bottom_specular);
+
 
 		// transformations
 		glm::mat4 projection = glm::perspective(glm::radians(camera.zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
@@ -282,7 +231,7 @@ int main()
 
 		light_shader.use();
 		glBindVertexArray(lightVAO);
-		glm::vec3 light_pos(1.2f, 1.0f, 2.0f);
+		glm::vec3 light_pos(0, 0, -2.0f);
 		glm::mat4 model = glm::mat4(1.0f);
 		model = glm::translate(model, light_pos);
 		model = glm::scale(model, glm::vec3(0.2f));
@@ -294,7 +243,9 @@ int main()
 		glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
 
 		default_shader.use();
-		default_shader.setVec3("light_color", light_color);
+		default_shader.setVec3("light.ambient",  light_color * 0.2f);
+		default_shader.setVec3("light.diffuse",  light_color);
+		default_shader.setVec3("light.specular", light_color); 
 		default_shader.setVec3("light_pos_world_space", light_pos);
 		default_shader.setMat4("view", view);
 		default_shader.setMat4("projection", projection);
@@ -327,8 +278,7 @@ int main()
 }
 
 // process all input: query GLFW whether relevant keys are pressed/released this frame and react accordingly
-// ---------------------------------------------------------------------------------------------------------
-void processInput(GLFWwindow *window)
+void process_input(GLFWwindow *window)
 {
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, true);
@@ -347,8 +297,33 @@ void processInput(GLFWwindow *window)
 		camera.processMovement(Camera::moveDown, deltaTime);
 }
 
+void setup_tex(unsigned int& tex, const char* file_path) {
+	// create diffuse texture
+	glGenTextures(1, &tex);
+	glBindTexture(GL_TEXTURE_2D, tex);
+	// set the texture wrapping parameters
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	// set texture filtering parameters
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	// load image, create texture and generate mipmaps
+	stbi_set_flip_vertically_on_load(true); // tell stb_image.h to flip loaded texture's on the y-axis.
+	int width, height, nrChannels = 0;
+	unsigned char *data = stbi_load(file_path, &width, &height, &nrChannels, 0);
+	if (data)
+	{
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+		glGenerateMipmap(GL_TEXTURE_2D);
+	}
+	else
+	{
+		std::cout << "Failed to load texture" << std::endl;
+	}
+	stbi_image_free(data);
+}
+
 // glfw: whenever the window size changed (by OS or user resize) this callback function executes
-// ---------------------------------------------------------------------------------------------
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
 	// make sure the viewport matches the new window dimensions
