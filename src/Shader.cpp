@@ -4,19 +4,22 @@
 
 #include "shader.h"
 
-Shader::Shader(const char* vertexPath, const char* fragmentPath, const char* geometryPath)
+Shader::Shader(const char* vertexPath, const char* fragmentPath, const char* geometryPath, const char* macroPath)
 {
-	// 1. retrieve the vertex/fragment source code from filePath
+	// retrieve source code from files 
 	std::string vertexCode;
 	std::string fragmentCode;
 	std::string geometryCode;
+	std::string macroCode;
 	std::ifstream vShaderFile;
 	std::ifstream fShaderFile;
 	std::ifstream gShaderFile;
-	// ensure ifstream objects can throw exceptions:
+	std::ifstream macroFile;
+	// ensure ifstream objects can throw exceptions
 	vShaderFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
 	fShaderFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
 	gShaderFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+	macroFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
 	try
 	{
 		// open files
@@ -41,11 +44,31 @@ Shader::Shader(const char* vertexPath, const char* fragmentPath, const char* geo
 			gShaderFile.close();
 			geometryCode = gShaderStream.str();
 		}
+		// if macros are present, load them
+		if (macroPath != nullptr)
+		{
+			macroFile.open(macroPath);
+			std::stringstream macroStream;
+			macroStream << macroFile.rdbuf();
+			macroFile.close();
+			macroCode = macroStream.str();
+			macroCode += "\n";
+		}
 	}
 	catch (std::ifstream::failure& e)
 	{
 		std::cout << "ERROR::SHADER::FILE_NOT_SUCCESFULLY_READ" << std::endl;
 	}
+
+	// inject macro code in all relevant files
+	if (macroPath != nullptr) {
+		insertMacros(vertexCode, macroCode);
+		insertMacros(fragmentCode, macroCode);
+		if (geometryPath != nullptr) {
+			insertMacros(geometryCode, macroCode);
+		}
+	}
+
 	const char* vShaderCode = vertexCode.c_str();
 	const char* fShaderCode = fragmentCode.c_str();
 	// 2. compile shaders
@@ -173,4 +196,17 @@ void Shader::checkCompileErrors(GLuint shader, std::string type)
 			std::cout << "ERROR::PROGRAM_LINKING_ERROR of type: " << type << "\n" << infoLog << "\n -- --------------------------------------------------- -- " << std::endl;
 		}
 	}
+}
+
+void Shader::insertMacros(std::string &code, std::string macros)
+{
+	size_t version_pos = code.find_first_of("#version");
+	size_t insertion_pos = 0;
+	if (version_pos != std::string::npos) {
+		insertion_pos = code.find_first_of("\n");
+		if (insertion_pos != std::string::npos) {
+			insertion_pos++;
+		}
+	}
+	code.insert(insertion_pos, macros);
 }

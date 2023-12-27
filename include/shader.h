@@ -11,11 +11,10 @@ class Shader
 public:
 	unsigned int id;
 
-	Shader(const char* vertexPath, const char* fragmentPath, const char* geometryPath = nullptr);
-	// ------------------------------------------------------------------------
+	Shader(const char* vertexPath, const char* fragmentPath, const char* geometryPath = nullptr, const char* macros = nullptr);
+
 	// activate the shader
 	void use();
-	// ------------------------------------------------------------------------
 	// utility uniform functions
 	// ------------------------------------------------------------------------
 	void setBool(const std::string &name, bool value) const;
@@ -35,5 +34,7 @@ public:
 
 private:
 	void checkCompileErrors(GLuint shader, std::string type);
+	// insert macro string after '#version' statement in code
+	void insertMacros(std::string &code, std::string macros);
 };
 #endif

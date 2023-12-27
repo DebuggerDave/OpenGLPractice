@@ -15,6 +15,8 @@
 
 #include "nlohmann/json.hpp"
 
+#include "shader_macros.h"
+
 #define STRINGIFY_MACRO_EXPANSION(x) #x
 #define STRINGIFY(x) STRINGIFY_MACRO_EXPANSION(x)
 
@@ -38,12 +40,13 @@ bool firstMouse = true;
 float deltaTime = 0.0f;	// time between current frame and last frame
 float lastFrame = 0.0f;
 
+
 int main()
 {
 	// glfw init
 	glfwInit();
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 #ifdef __APPLE__
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); // uncomment this statement to fix compilation on OS X
@@ -72,17 +75,17 @@ int main()
 	glEnable(GL_DEPTH_TEST);
 
 	unsigned int top_diffuse;
-	setup_tex(top_diffuse, STRINGIFY(BINARY_DIR) "/img/grass_top.png");
+	setup_tex(top_diffuse, STRINGIFY(BINARY_DIR) "/img/cobblestone_top.png");
 	unsigned int side_diffuse;
-	setup_tex(side_diffuse, STRINGIFY(BINARY_DIR) "/img/grass_side.png");
+	setup_tex(side_diffuse, STRINGIFY(BINARY_DIR) "/img/cobblestone_side.png");
 	unsigned int bottom_diffuse;
-	setup_tex(bottom_diffuse, STRINGIFY(BINARY_DIR) "/img/grass_bottom.png");
+	setup_tex(bottom_diffuse, STRINGIFY(BINARY_DIR) "/img/cobblestone_bottom.png");
 	unsigned int top_specular;
-	setup_tex(top_specular, STRINGIFY(BINARY_DIR) "/img/grass_top_specular.png");
+	setup_tex(top_specular, STRINGIFY(BINARY_DIR) "/img/cobblestone_top_specular.png");
 	unsigned int side_specular;
-	setup_tex(side_specular, STRINGIFY(BINARY_DIR) "/img/grass_side_specular.png");
+	setup_tex(side_specular, STRINGIFY(BINARY_DIR) "/img/cobblestone_side_specular.png");
 	unsigned int bottom_specular;
-	setup_tex(bottom_specular, STRINGIFY(BINARY_DIR) "/img/grass_bottom_specular.png");
+	setup_tex(bottom_specular, STRINGIFY(BINARY_DIR) "/img/cobblestone_bottom_specular.png");
 
 	// set up vertex data (and buffer(s)) and configure vertex attributes
 	float vertices[] = {
@@ -119,7 +122,7 @@ int main()
 
 	};
 	// world space positions of our cubes
-	glm::vec3 cubePositions[] = {
+	glm::vec3 cube_positions[] = {
 		glm::vec3( 0.0f,  0.0f,  0.0f),
 		glm::vec3( 2.0f,  5.0f, -15.0f),
 		glm::vec3(-1.5f, -2.2f, -2.5f),
@@ -130,6 +133,11 @@ int main()
 		glm::vec3( 1.5f,  2.0f, -2.5f),
 		glm::vec3( 1.5f,  0.2f, -1.5f),
 		glm::vec3(-1.3f,  1.0f, -1.5f)
+	};
+	glm::vec3 light_positions[] = {
+		glm::vec3(2.0, 0.0, 0.0),
+		glm::vec3(0.0, 2.0, 0.0),
+		glm::vec3(0.0, 0.0, 2.0)
 	};
 	unsigned int indices[] = {
 		0 , 1 , 3 , 1 , 2 , 3,
@@ -180,8 +188,9 @@ int main()
 	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
 	glEnableVertexAttribArray(2);
 
-	Shader default_shader(STRINGIFY(BINARY_DIR) "/glsl/default_vert.glsl", STRINGIFY(BINARY_DIR) "/glsl/default_frag.glsl");
+	Shader default_shader(STRINGIFY(BINARY_DIR) "/glsl/default.vert", STRINGIFY(BINARY_DIR) "/glsl/default.frag", nullptr, STRINGIFY(BINARY_DIR) "/glsl/include/shader_macros.h");
 	default_shader.use();
+	float shininess = std::pow(2, 3);
 	// Texture units
 	default_shader.setInt("top_material.diffuse", 0);
 	default_shader.setInt("side_material.diffuse", 1);
@@ -189,11 +198,11 @@ int main()
 	default_shader.setInt("top_material.specular", 3);
 	default_shader.setInt("side_material.specular", 4);
 	default_shader.setInt("bottom_material.specular", 5);
-	default_shader.setFloat("top_material.shininess", 8);
-	default_shader.setFloat("side_material.shininess", 8);
-	default_shader.setFloat("bottom_material.shininess", 8);
+	default_shader.setFloat("top_material.shininess", shininess);
+	default_shader.setFloat("side_material.shininess", shininess);
+	default_shader.setFloat("bottom_material.shininess", shininess);
 
-	Shader light_shader(STRINGIFY(BINARY_DIR) "/glsl/light_vert.glsl", STRINGIFY(BINARY_DIR) "/glsl/light_frag.glsl");
+	Shader light_shader(STRINGIFY(BINARY_DIR) "/glsl/light.vert", STRINGIFY(BINARY_DIR) "/glsl/light.frag", nullptr, STRINGIFY(BINARY_DIR) "/glsl/include/shader_macros.h");
 	light_shader.use();
 
 	// render loop
@@ -231,33 +240,62 @@ int main()
 
 		light_shader.use();
 		glBindVertexArray(lightVAO);
-		glm::vec3 light_pos(0, 0, -2.0f);
+		glm::vec4 light_pos(0.0f, 0.0f, -5.0f, 1.0f);
 		glm::mat4 model = glm::mat4(1.0f);
-		model = glm::translate(model, light_pos);
+		model = glm::translate(model, glm::vec3(light_pos));
 		model = glm::scale(model, glm::vec3(0.2f));
-		glm::vec3 light_color(1.0f, 1.0f, 1.0f);
-		light_shader.setVec3("light_color", light_color);
+		float ambient_scale = 0.2f;
+		glm::vec4 light_color(1.0f, 1.0f, 1.0f, 1.0f);
+		LightBlock light_block;
+		for (int i=0; i<(sizeof(light_block.light)/sizeof(light_block.light[0])); i++) {
+			light_block.light[i].ambient = light_color * ambient_scale;
+			light_block.light[i].diffuse = light_color;
+			light_block.light[i].specular = light_color;
+			light_block.light[i].dir_pos= light_pos;
+		}
+		light_shader.setVec4("light_color", light_color);
 		light_shader.setMat4("model", model);
 		light_shader.setMat4("view", view);
 		light_shader.setMat4("projection", projection);
 		glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
 
 		default_shader.use();
-		default_shader.setVec3("light.ambient",  light_color * 0.2f);
-		default_shader.setVec3("light.diffuse",  light_color);
-		default_shader.setVec3("light.specular", light_color); 
-		default_shader.setVec3("light_pos_world_space", light_pos);
+
+		default_shader.setVec4("light_pos_world_space", light_pos);
 		default_shader.setMat4("view", view);
 		default_shader.setMat4("projection", projection);
+
+		// uniform buffer object
+		unsigned int ubo;
+		glGenBuffers(1, &ubo);
+		glBindBuffer(GL_UNIFORM_BUFFER, ubo);
+		GLuint ubo_index_default = glGetUniformBlockIndex(default_shader.id, "LightBlock");
+		GLuint ubo_index_light = glGetUniformBlockIndex(light_shader.id, "LightBlock");
+		GLint ubo_size_default, ubo_size_light = 0;
+		glGetActiveUniformBlockiv(default_shader.id, ubo_index_default, GL_UNIFORM_BLOCK_DATA_SIZE, &ubo_size_default);
+		glGetActiveUniformBlockiv(default_shader.id, ubo_index_light, GL_UNIFORM_BLOCK_DATA_SIZE, &ubo_size_light);
+		if ((sizeof(light_block) != ubo_size_default) || (sizeof(light_block) != ubo_size_light)) {
+			std::cerr << "uniform block sizes do not match";
+			return -1;
+		}
+		GLvoid* buffer = malloc(sizeof(light_block));
+		if (buffer == NULL) {
+			std::cout << "failed to create uniform block buffer";
+			return -1;
+		}
+		memcpy(buffer, &light_block, sizeof(light_block));
+		glBufferData(GL_UNIFORM_BUFFER, ubo_size_default, buffer, GL_STATIC_DRAW);
+		glBindBufferBase(GL_UNIFORM_BUFFER, ubo_index_default, ubo);
+
 		// render boxes
 		glBindVertexArray(VAO);
 		for (unsigned int i = 0; i < 10; i++)
 		{
 			// calculate the model matrix for each object and pass it to shader before drawing
 			glm::mat4 model = glm::mat4(1.0f); // make sure to initialize matrix to identity matrix first
-			model = glm::translate(model, cubePositions[i]);
-			float angle = 20.0f * i;
-			model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
+			model = glm::translate(model, cube_positions[i]);
+			//float angle = 20.0f * i;
+			//model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
 			default_shader.setMat4("model", model);
 
 			glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
