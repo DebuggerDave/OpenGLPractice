@@ -7,19 +7,17 @@ out vec2 tex_coord;
 out vec4 norm;
 flat out vec4 norm_local_space;
 out vec4 frag_pos;
-out vec4 light_pos;
 
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
-uniform vec4 light_pos_world_space;
+uniform mat3 normal_mat;
 
 void main()
 {
 	gl_Position = projection * view * model * vec4(a_pos, 1.0f);
 	tex_coord = a_tex_coord;
-	norm = normalize(transpose(inverse(view * model)) * vec4(a_norm, 0.0f));
-	norm_local_space = normalize(vec4(a_norm, 0.0f));
+	norm = vec4(normalize(normal_mat * a_norm), 0.0);
+	norm_local_space = vec4(normalize(a_norm), 0.0);
 	frag_pos = view * model * vec4(a_pos, 1.0);
-	light_pos = view * light_pos_world_space;
 }

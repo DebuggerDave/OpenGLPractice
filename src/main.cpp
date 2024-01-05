@@ -7,6 +7,7 @@
 
 #include <iostream>
 #include <fstream>
+#include <limits>
 
 #include "stb_image.h"
 
@@ -49,7 +50,7 @@ int main()
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 #ifdef __APPLE__
-	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); // uncomment this statement to fix compilation on OS X
+	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
 	GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "LearnOpenGL", NULL, NULL);
 	if (window == NULL)
@@ -75,17 +76,17 @@ int main()
 	glEnable(GL_DEPTH_TEST);
 
 	unsigned int top_diffuse;
-	setup_tex(top_diffuse, STRINGIFY(BINARY_DIR) "/img/cobblestone_top.png");
+	setup_tex(top_diffuse, STRINGIFY(BINARY_DIR) "/img/grass_top.png");
 	unsigned int side_diffuse;
-	setup_tex(side_diffuse, STRINGIFY(BINARY_DIR) "/img/cobblestone_side.png");
+	setup_tex(side_diffuse, STRINGIFY(BINARY_DIR) "/img/grass_side.png");
 	unsigned int bottom_diffuse;
-	setup_tex(bottom_diffuse, STRINGIFY(BINARY_DIR) "/img/cobblestone_bottom.png");
+	setup_tex(bottom_diffuse, STRINGIFY(BINARY_DIR) "/img/grass_bottom.png");
 	unsigned int top_specular;
-	setup_tex(top_specular, STRINGIFY(BINARY_DIR) "/img/cobblestone_top_specular.png");
+	setup_tex(top_specular, STRINGIFY(BINARY_DIR) "/img/grass_top_specular.png");
 	unsigned int side_specular;
-	setup_tex(side_specular, STRINGIFY(BINARY_DIR) "/img/cobblestone_side_specular.png");
+	setup_tex(side_specular, STRINGIFY(BINARY_DIR) "/img/grass_side_specular.png");
 	unsigned int bottom_specular;
-	setup_tex(bottom_specular, STRINGIFY(BINARY_DIR) "/img/cobblestone_bottom_specular.png");
+	setup_tex(bottom_specular, STRINGIFY(BINARY_DIR) "/img/grass_bottom_specular.png");
 
 	// set up vertex data (and buffer(s)) and configure vertex attributes
 	float vertices[] = {
@@ -133,11 +134,6 @@ int main()
 		glm::vec3( 1.5f,  2.0f, -2.5f),
 		glm::vec3( 1.5f,  0.2f, -1.5f),
 		glm::vec3(-1.3f,  1.0f, -1.5f)
-	};
-	glm::vec3 light_positions[] = {
-		glm::vec3(2.0, 0.0, 0.0),
-		glm::vec3(0.0, 2.0, 0.0),
-		glm::vec3(0.0, 0.0, 2.0)
 	};
 	unsigned int indices[] = {
 		0 , 1 , 3 , 1 , 2 , 3,
@@ -190,7 +186,7 @@ int main()
 
 	Shader default_shader(STRINGIFY(BINARY_DIR) "/glsl/default.vert", STRINGIFY(BINARY_DIR) "/glsl/default.frag", nullptr, STRINGIFY(BINARY_DIR) "/glsl/include/shader_macros.h");
 	default_shader.use();
-	float shininess = std::pow(2, 3);
+	float shininess = std::pow(2, 6);
 	// Texture units
 	default_shader.setInt("top_material.diffuse", 0);
 	default_shader.setInt("side_material.diffuse", 1);
@@ -205,13 +201,69 @@ int main()
 	Shader light_shader(STRINGIFY(BINARY_DIR) "/glsl/light.vert", STRINGIFY(BINARY_DIR) "/glsl/light.frag", nullptr, STRINGIFY(BINARY_DIR) "/glsl/include/shader_macros.h");
 	light_shader.use();
 
+	float ambient_scale = 0.2f;
+	glm::vec4 light_color(1.0f);
+
+	LightBlock light_block;
+	light_block.light[0].ambient = light_color * ambient_scale;
+	light_block.light[0].diffuse = light_color;
+	light_block.light[0].specular = light_color;
+	light_block.light[0].dir_pos = glm::vec4(0.0f);
+	light_block.light[0].dir_pos = glm::vec4(1.0f, 0.0f, 0.0f, 0.0f);
+
+	light_block.light[1].ambient = light_color * ambient_scale;
+	light_block.light[1].diffuse = light_color;
+	light_block.light[1].specular = light_color;
+	light_block.light[1].dir_pos = glm::vec4(0.0f);
+	light_block.light[1].dir_pos = glm::vec4(0.0f, 0.0f, -5.0f, 1.0f);
+
+	light_block.light[2].ambient = glm::vec4(-1.0f);
+	light_block.light[2].diffuse = glm::vec4(-1.0f);
+	light_block.light[2].specular = glm::vec4(-1.0f);
+	light_block.light[2].dir_pos = glm::vec4(-0.0f);
+
+	// uniform buffer object
+	unsigned int ubo;
+	glGenBuffers(1, &ubo);
+	glBindBuffer(GL_UNIFORM_BUFFER, ubo);
+	GLuint ubo_index_default = glGetUniformBlockIndex(default_shader.id, "LightBlock");
+	GLuint ubo_index_light = glGetUniformBlockIndex(light_shader.id, "LightBlock");
+	GLint ubo_size_default, ubo_size_light = 0;
+	glGetActiveUniformBlockiv(default_shader.id, ubo_index_default, GL_UNIFORM_BLOCK_DATA_SIZE, &ubo_size_default);
+	if (sizeof(light_block) != ubo_size_default) {
+		std::cerr << "uniform block sizes do not match";
+		return -1;
+	}
+	GLvoid* buffer = malloc(sizeof(light_block));
+	if (buffer == NULL) {
+		std::cout << "failed to create uniform block buffer";
+		return -1;
+	}
+	memcpy(buffer, &light_block, sizeof(light_block));
+	glBufferData(GL_UNIFORM_BUFFER, sizeof(light_block), buffer, GL_STATIC_DRAW);
+	glBindBufferBase(GL_UNIFORM_BUFFER, ubo_index_default, ubo);
+
+	// bind textures
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, top_diffuse);
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, side_diffuse);
+	glActiveTexture(GL_TEXTURE2);
+	glBindTexture(GL_TEXTURE_2D, bottom_diffuse);
+	glActiveTexture(GL_TEXTURE3);
+	glBindTexture(GL_TEXTURE_2D, top_specular);
+	glActiveTexture(GL_TEXTURE4);
+	glBindTexture(GL_TEXTURE_2D, side_specular);
+	glActiveTexture(GL_TEXTURE5);
+	glBindTexture(GL_TEXTURE_2D, bottom_specular);
+
 	// render loop
 	while (!glfwWindowShouldClose(window))
 	{
 		// per-frame time logic
-		float currentFrame = glfwGetTime();
-		deltaTime = currentFrame - lastFrame;
-		lastFrame = currentFrame;
+		float current_frame = glfwGetTime();
+		deltaTime = current_frame - lastFrame;
+		lastFrame = current_frame;
 		// input
 		process_input(window);
 
@@ -219,84 +271,57 @@ int main()
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		// bind textures
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, top_diffuse);
-		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_2D, side_diffuse);
-		glActiveTexture(GL_TEXTURE2);
-		glBindTexture(GL_TEXTURE_2D, bottom_diffuse);
-		glActiveTexture(GL_TEXTURE3);
-		glBindTexture(GL_TEXTURE_2D, top_specular);
-		glActiveTexture(GL_TEXTURE4);
-		glBindTexture(GL_TEXTURE_2D, side_specular);
-		glActiveTexture(GL_TEXTURE5);
-		glBindTexture(GL_TEXTURE_2D, bottom_specular);
-
-
 		// transformations
 		glm::mat4 projection = glm::perspective(glm::radians(camera.zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
 		glm::mat4 view = camera.getViewMatrix();
 
+		// lights
+		// -------------------------------------------
 		light_shader.use();
-		glBindVertexArray(lightVAO);
-		glm::vec4 light_pos(0.0f, 0.0f, -5.0f, 1.0f);
-		glm::mat4 model = glm::mat4(1.0f);
-		model = glm::translate(model, glm::vec3(light_pos));
-		model = glm::scale(model, glm::vec3(0.2f));
-		float ambient_scale = 0.2f;
-		glm::vec4 light_color(1.0f, 1.0f, 1.0f, 1.0f);
-		LightBlock light_block;
-		for (int i=0; i<(sizeof(light_block.light)/sizeof(light_block.light[0])); i++) {
-			light_block.light[i].ambient = light_color * ambient_scale;
-			light_block.light[i].diffuse = light_color;
-			light_block.light[i].specular = light_color;
-			light_block.light[i].dir_pos= light_pos;
-		}
-		light_shader.setVec4("light_color", light_color);
-		light_shader.setMat4("model", model);
 		light_shader.setMat4("view", view);
 		light_shader.setMat4("projection", projection);
-		glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+		glBindVertexArray(lightVAO);
 
+		glm::vec4 invalid(-1.0f);
+		for (int i=0; i<NUM_LIGHTS; i++) {
+			Light cur_light = light_block.light[i];
+			if ((cur_light.ambient == invalid) || (cur_light.diffuse == invalid) || (cur_light.specular == invalid)) {
+				continue;
+			}
+			light_shader.setVec4("light_color", cur_light.diffuse);
+			glm::mat4 model = glm::mat4(1.0f);
+
+			// global light
+			if (cur_light.dir_pos.w == 0.0f) {
+				model = glm::translate(model, camera.position + (glm::vec3(-cur_light.dir_pos) * 100.0f));
+				model = glm::scale(model, glm::vec3(10.0f));
+			// point light
+			} else {
+				model = glm::translate(model, glm::vec3(cur_light.dir_pos));
+				model = glm::scale(model, glm::vec3(0.2f));
+			}
+
+			light_shader.setMat4("model", model);
+			glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+		}
+
+		// non-lights
+		// --------------------------------------------------
 		default_shader.use();
-
-		default_shader.setVec4("light_pos_world_space", light_pos);
 		default_shader.setMat4("view", view);
 		default_shader.setMat4("projection", projection);
-
-		// uniform buffer object
-		unsigned int ubo;
-		glGenBuffers(1, &ubo);
-		glBindBuffer(GL_UNIFORM_BUFFER, ubo);
-		GLuint ubo_index_default = glGetUniformBlockIndex(default_shader.id, "LightBlock");
-		GLuint ubo_index_light = glGetUniformBlockIndex(light_shader.id, "LightBlock");
-		GLint ubo_size_default, ubo_size_light = 0;
-		glGetActiveUniformBlockiv(default_shader.id, ubo_index_default, GL_UNIFORM_BLOCK_DATA_SIZE, &ubo_size_default);
-		glGetActiveUniformBlockiv(default_shader.id, ubo_index_light, GL_UNIFORM_BLOCK_DATA_SIZE, &ubo_size_light);
-		if ((sizeof(light_block) != ubo_size_default) || (sizeof(light_block) != ubo_size_light)) {
-			std::cerr << "uniform block sizes do not match";
-			return -1;
-		}
-		GLvoid* buffer = malloc(sizeof(light_block));
-		if (buffer == NULL) {
-			std::cout << "failed to create uniform block buffer";
-			return -1;
-		}
-		memcpy(buffer, &light_block, sizeof(light_block));
-		glBufferData(GL_UNIFORM_BUFFER, ubo_size_default, buffer, GL_STATIC_DRAW);
-		glBindBufferBase(GL_UNIFORM_BUFFER, ubo_index_default, ubo);
-
-		// render boxes
+		default_shader.setMat3("light_normal_mat", glm::transpose(glm::inverse(glm::mat3(view))));
 		glBindVertexArray(VAO);
-		for (unsigned int i = 0; i < 10; i++)
+
+		for (unsigned int i = 0; i < (sizeof(cube_positions)/sizeof(cube_positions[0])); i++)
 		{
 			// calculate the model matrix for each object and pass it to shader before drawing
 			glm::mat4 model = glm::mat4(1.0f); // make sure to initialize matrix to identity matrix first
 			model = glm::translate(model, cube_positions[i]);
-			//float angle = 20.0f * i;
-			//model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
+			float angle = 20.0f * i;
+			model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
 			default_shader.setMat4("model", model);
+			default_shader.setMat3("normal_mat", glm::transpose(glm::inverse(glm::mat3(view * model))));
 
 			glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
 		}
@@ -318,21 +343,24 @@ int main()
 // process all input: query GLFW whether relevant keys are pressed/released this frame and react accordingly
 void process_input(GLFWwindow *window)
 {
+	float speed = 1.0f;
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, true);
 
-	if ((glfwGetKey(window, GLFW_KEY_COMMA) == GLFW_PRESS) || (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS))
-		camera.processMovement(Camera::moveForward, deltaTime);
-	if ((glfwGetKey(window, GLFW_KEY_O) == GLFW_PRESS) || (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS))
-		camera.processMovement(Camera::moveBackward, deltaTime);
-	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-		camera.processMovement(Camera::moveLeft, deltaTime);
-	if ((glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) || (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS))
-		camera.processMovement(Camera::moveRight, deltaTime);
-	if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
-		camera.processMovement(Camera::moveUp, deltaTime);
 	if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
-		camera.processMovement(Camera::moveDown, deltaTime);
+		speed = 2.0f;
+	if ((glfwGetKey(window, GLFW_KEY_COMMA) == GLFW_PRESS) || (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS))
+		camera.processMovement(Camera::moveForward, deltaTime * speed);
+	if ((glfwGetKey(window, GLFW_KEY_O) == GLFW_PRESS) || (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS))
+		camera.processMovement(Camera::moveBackward, deltaTime * speed);
+	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+		camera.processMovement(Camera::moveLeft, deltaTime * speed);
+	if ((glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) || (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS))
+		camera.processMovement(Camera::moveRight, deltaTime * speed);
+	if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
+		camera.processMovement(Camera::moveUp, deltaTime * speed);
+	if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
+		camera.processMovement(Camera::moveDown, deltaTime * speed);
 }
 
 void setup_tex(unsigned int& tex, const char* file_path) {

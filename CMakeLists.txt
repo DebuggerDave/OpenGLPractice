@@ -3,6 +3,8 @@ project(OpenGLPractice)
 
 add_executable(opengl_practice)
 
+set_property(TARGET opengl_practice PROPERTY CXX_STANDARD 23)
+
 add_subdirectory(src)
 add_subdirectory(third_party)
 add_subdirectory(img)

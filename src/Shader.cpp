@@ -1,6 +1,9 @@
 #include <fstream>
 #include <sstream>
 #include <iostream>
+#include <algorithm>
+#include <source_location>
+#include <iterator>
 
 #include "shader.h"
 
@@ -51,8 +54,11 @@ Shader::Shader(const char* vertexPath, const char* fragmentPath, const char* geo
 			std::stringstream macroStream;
 			macroStream << macroFile.rdbuf();
 			macroFile.close();
-			macroCode = macroStream.str();
-			macroCode += "\n";
+			macroCode = macroStream.str() + '\n';
+			num_injected_lines += std::count(
+				macroCode.begin(),
+				macroCode.end(),
+				'\n');
 		}
 	}
 	catch (std::ifstream::failure& e)
@@ -174,17 +180,52 @@ void Shader::setMat4(const std::string &name, const glm::mat4 &mat) const
 	glUniformMatrix4fv(glGetUniformLocation(id, name.c_str()), 1, GL_FALSE, &mat[0][0]);
 }
 
+void Shader::updateLineNumbers(GLchar* log, GLsizei max_size)
+{
+	size_t pos = 0;
+	std::string log_str(log);
+	const std::string first_match("0(");
+	const std::string second_match(")");
+	// for each line number
+	for (size_t pos; pos != std::string::npos; pos = log_str.find(first_match, pos)) {
+		size_t second_pos = log_str.find(second_match, pos);
+		size_t start_pos = pos + first_match.size();
+		// get number and update it
+		if (second_pos != std::string::npos) {
+			std::string line_num_str = log_str.substr(start_pos, second_pos - start_pos);
+			int line_num = -1;
+			try {
+				line_num = std::stoi(line_num_str);
+			} catch (std::invalid_argument const& ex) {
+				std::cerr << "Couldn't convert string to int in '" << std::source_location::current().function_name() << "'\n";
+			}
+			std::string new_line_num_str = std::to_string(line_num - num_injected_lines);
+			log_str.replace(start_pos, second_pos - start_pos, new_line_num_str);
+		}
+		pos += start_pos;
+	}
+
+	if (log_str.length() > max_size) {
+		std::cerr << "max string size reached, not updating log in '" << std::source_location::current().function_name() << "'\n";
+	} else {
+		const char* out = log_str.c_str();
+		memcpy(log, out, log_str.size());
+	}
+}
+
 void Shader::checkCompileErrors(GLuint shader, std::string type)
 {
 	GLint success;
-	GLchar infoLog[1024];
+	const GLsizei max_size = 1024;
+	GLchar infoLog[max_size];
 	if (type != "PROGRAM")
 	{
 		glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
 		if (!success)
 		{
-			glGetShaderInfoLog(shader, 1024, NULL, infoLog);
-			std::cout << "ERROR::SHADER_COMPILATION_ERROR of type: " << type << "\n" << infoLog << "\n -- --------------------------------------------------- -- " << std::endl;
+			glGetShaderInfoLog(shader, max_size, NULL, infoLog);
+			updateLineNumbers(infoLog, max_size);
+			std::cout << "ERROR::SHADER_COMPILATION_ERROR of type: " << type << "\n" << infoLog << "\n ------------------------------------------------------- " << "\n";
 		}
 	}
 	else
@@ -192,8 +233,9 @@ void Shader::checkCompileErrors(GLuint shader, std::string type)
 		glGetProgramiv(shader, GL_LINK_STATUS, &success);
 		if (!success)
 		{
-			glGetProgramInfoLog(shader, 1024, NULL, infoLog);
-			std::cout << "ERROR::PROGRAM_LINKING_ERROR of type: " << type << "\n" << infoLog << "\n -- --------------------------------------------------- -- " << std::endl;
+			glGetProgramInfoLog(shader, max_size, NULL, infoLog);
+			updateLineNumbers(infoLog, max_size);
+			std::cout << "ERROR::PROGRAM_LINKING_ERROR of type: " << type << "\n" << infoLog << "\n ------------------------------------------------------- " << "\n";
 		}
 	}
 }

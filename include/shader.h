@@ -34,7 +34,12 @@ public:
 
 private:
 	void checkCompileErrors(GLuint shader, std::string type);
+	// update the line numbers in logs to account for the injected code
+	void updateLineNumbers(GLchar* log, GLsizei max_size);
 	// insert macro string after '#version' statement in code
 	void insertMacros(std::string &code, std::string macros);
+
+	// number of lines of code added to the glsl files
+	int num_injected_lines = 0;
 };
 #endif
