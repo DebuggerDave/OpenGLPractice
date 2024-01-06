@@ -182,12 +182,11 @@ void Shader::setMat4(const std::string &name, const glm::mat4 &mat) const
 
 void Shader::updateLineNumbers(GLchar* log, GLsizei max_size)
 {
-	size_t pos = 0;
 	std::string log_str(log);
 	const std::string first_match("0(");
 	const std::string second_match(")");
 	// for each line number
-	for (size_t pos; pos != std::string::npos; pos = log_str.find(first_match, pos)) {
+	for (size_t pos = log_str.find(first_match); pos != std::string::npos; pos = log_str.find(first_match, pos)) {
 		size_t second_pos = log_str.find(second_match, pos);
 		size_t start_pos = pos + first_match.size();
 		// get number and update it

@@ -4,10 +4,12 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <glm/ext/vector_relational.hpp>
 
 #include <iostream>
 #include <fstream>
 #include <limits>
+#include <numbers>
 
 #include "stb_image.h"
 
@@ -205,43 +207,37 @@ int main()
 	glm::vec4 light_color(1.0f);
 
 	LightBlock light_block;
-	light_block.light[0].ambient = light_color * ambient_scale;
-	light_block.light[0].diffuse = light_color;
-	light_block.light[0].specular = light_color;
-	light_block.light[0].dir_pos = glm::vec4(0.0f);
-	light_block.light[0].dir_pos = glm::vec4(1.0f, 0.0f, 0.0f, 0.0f);
+	{
+		// direction light
+		light_block.directional_lights[0].dir = glm::vec4(1.0f, 0.0f, 0.0f, 0.0f);
+		light_block.directional_lights[0].ambient = light_color * ambient_scale;
+		light_block.directional_lights[0].diffuse = light_color;
+		light_block.directional_lights[0].specular = light_color;
 
-	light_block.light[1].ambient = light_color * ambient_scale;
-	light_block.light[1].diffuse = light_color;
-	light_block.light[1].specular = light_color;
-	light_block.light[1].dir_pos = glm::vec4(0.0f);
-	light_block.light[1].dir_pos = glm::vec4(0.0f, 0.0f, -5.0f, 1.0f);
+		// point light
+		light_block.lights[0].dir = glm::vec4(0.0f);
+		light_block.lights[0].pos = glm::vec4(0.0f, 0.0f, -5.0f, 1.0f);
+		light_block.lights[0].ambient = light_color * ambient_scale;
+		light_block.lights[0].diffuse = light_color;
+		light_block.lights[0].specular = light_color;
+    	light_block.lights[0].inner_angle_cosine = glm::cos(std::numbers::pi);
+    	light_block.lights[0].outer_angle_cosine = glm::cos(std::numbers::pi);
+    	light_block.lights[0].constant = 1.0f;
+    	light_block.lights[0].linear = 0.09f;
+		light_block.lights[0].quadratic = 0.032f;
 
-	light_block.light[2].ambient = glm::vec4(-1.0f);
-	light_block.light[2].diffuse = glm::vec4(-1.0f);
-	light_block.light[2].specular = glm::vec4(-1.0f);
-	light_block.light[2].dir_pos = glm::vec4(-0.0f);
-
-	// uniform buffer object
-	unsigned int ubo;
-	glGenBuffers(1, &ubo);
-	glBindBuffer(GL_UNIFORM_BUFFER, ubo);
-	GLuint ubo_index_default = glGetUniformBlockIndex(default_shader.id, "LightBlock");
-	GLuint ubo_index_light = glGetUniformBlockIndex(light_shader.id, "LightBlock");
-	GLint ubo_size_default, ubo_size_light = 0;
-	glGetActiveUniformBlockiv(default_shader.id, ubo_index_default, GL_UNIFORM_BLOCK_DATA_SIZE, &ubo_size_default);
-	if (sizeof(light_block) != ubo_size_default) {
-		std::cerr << "uniform block sizes do not match";
-		return -1;
+		// spotlight
+		light_block.lights[1].dir = glm::vec4(glm::normalize(camera.front), 0.0f);
+		light_block.lights[1].pos = glm::vec4(camera.position, 1.0f);
+		light_block.lights[1].ambient = light_color * ambient_scale;
+		light_block.lights[1].diffuse = light_color;
+		light_block.lights[1].specular = light_color;
+    	light_block.lights[1].inner_angle_cosine = glm::cos(glm::radians(15.0f));
+    	light_block.lights[1].outer_angle_cosine = glm::cos(glm::radians(25.0f));
+    	light_block.lights[1].constant = 1.0f;
+    	light_block.lights[1].linear = 0.09f;
+		light_block.lights[1].quadratic = 0.032f;
 	}
-	GLvoid* buffer = malloc(sizeof(light_block));
-	if (buffer == NULL) {
-		std::cout << "failed to create uniform block buffer";
-		return -1;
-	}
-	memcpy(buffer, &light_block, sizeof(light_block));
-	glBufferData(GL_UNIFORM_BUFFER, sizeof(light_block), buffer, GL_STATIC_DRAW);
-	glBindBufferBase(GL_UNIFORM_BUFFER, ubo_index_default, ubo);
 
 	// bind textures
 	glActiveTexture(GL_TEXTURE0);
@@ -267,6 +263,29 @@ int main()
 		// input
 		process_input(window);
 
+		// uniform buffer object
+		unsigned int ubo;
+		glGenBuffers(1, &ubo);
+		glBindBuffer(GL_UNIFORM_BUFFER, ubo);
+		GLuint ubo_index_default = glGetUniformBlockIndex(default_shader.id, "LightBlock");
+		GLuint ubo_index_light = glGetUniformBlockIndex(light_shader.id, "LightBlock");
+		GLint ubo_size_default, ubo_size_light = 0;
+		glGetActiveUniformBlockiv(default_shader.id, ubo_index_default, GL_UNIFORM_BLOCK_DATA_SIZE, &ubo_size_default);
+		if (sizeof(light_block) != ubo_size_default) {
+			std::cerr << "uniform block sizes do not match";
+			return -1;
+		}
+		GLvoid* buffer = malloc(sizeof(light_block));
+		if (buffer == NULL) {
+			std::cout << "failed to create uniform block buffer";
+			return -1;
+		}
+		light_block.lights[1].dir = glm::vec4(camera.front, 1.0f);
+		light_block.lights[1].pos = glm::vec4(camera.position, 1.0f);
+		memcpy(buffer, &light_block, sizeof(light_block));
+		glBufferData(GL_UNIFORM_BUFFER, sizeof(light_block), buffer, GL_DYNAMIC_DRAW);
+		glBindBufferBase(GL_UNIFORM_BUFFER, ubo_index_default, ubo);
+
 		// start rendering
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -282,24 +301,42 @@ int main()
 		light_shader.setMat4("projection", projection);
 		glBindVertexArray(lightVAO);
 
-		glm::vec4 invalid(-1.0f);
+		// normal lights
 		for (int i=0; i<NUM_LIGHTS; i++) {
-			Light cur_light = light_block.light[i];
-			if ((cur_light.ambient == invalid) || (cur_light.diffuse == invalid) || (cur_light.specular == invalid)) {
+			glm::vec4 zero(0.0f);
+			Light cur_light = light_block.lights[i];
+			if (glm::all(glm::equal(cur_light.pos, glm::vec4(camera.position, 1.0))) || (
+					(glm::all(glm::equal(cur_light.ambient, zero))) &&
+					(glm::all(glm::equal(cur_light.diffuse, zero))) &&
+					(glm::all(glm::equal(cur_light.specular, zero)))
+				)
+			) {
 				continue;
 			}
 			light_shader.setVec4("light_color", cur_light.diffuse);
 			glm::mat4 model = glm::mat4(1.0f);
 
-			// global light
-			if (cur_light.dir_pos.w == 0.0f) {
-				model = glm::translate(model, camera.position + (glm::vec3(-cur_light.dir_pos) * 100.0f));
-				model = glm::scale(model, glm::vec3(10.0f));
-			// point light
-			} else {
-				model = glm::translate(model, glm::vec3(cur_light.dir_pos));
-				model = glm::scale(model, glm::vec3(0.2f));
+			model = glm::translate(model, glm::vec3(cur_light.pos));
+			model = glm::scale(model, glm::vec3(0.2f));
+
+			light_shader.setMat4("model", model);
+			glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+		}
+
+		// directional lights
+		for (int i=0; i<NUM_DIRECTIONAL_LIGHTS; i++) {
+			glm::vec4 zero(0.0f);
+			Directional_Light cur_light = light_block.directional_lights[i];
+			if ((glm::all(glm::equal(cur_light.ambient, zero))) &&
+				(glm::all(glm::equal(cur_light.diffuse, zero))) &&
+				(glm::all(glm::equal(cur_light.specular, zero)))) {
+				continue;
 			}
+			light_shader.setVec4("light_color", cur_light.diffuse);
+			glm::mat4 model = glm::mat4(1.0f);
+
+			model = glm::translate(model, camera.position + (glm::vec3(-cur_light.dir) * 100.0f));
+			model = glm::scale(model, glm::vec3(10.0f));
 
 			light_shader.setMat4("model", model);
 			glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
