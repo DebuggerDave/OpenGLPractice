@@ -19,10 +19,16 @@ uniform Material bottom_material;
 uniform mat3 light_normal_mat;
 uniform mat4 view;
 
+float calc_attenuation(float light_distance, float constant, float linear, float quadratic);
+float calc_spotlight_intensity(vec4 frag_dir, vec4 light_dir, float inner_angle_cosine, float outer_angle_cosine);
+float calc_spotlight_intensity(vec3 frag_dir, vec3 light_dir, float inner_angle_cosine, float outer_angle_cosine);
+vec4 calc_light(vec4 normal, vec4 light_pos, vec4 frag_pos, float shininess, vec4 diffuse_tex, vec4 specular_tex, vec4 ambient_light, vec4 diffuse_light, vec4 specular_light);
+vec4 calc_light(vec3 normal, vec3 light_pos, vec3 frag_pos, float shininess, vec4 diffuse_tex, vec4 specular_tex, vec4 ambient_light, vec4 diffuse_light, vec4 specular_light);
+vec4 better_normalize(vec4 in_vec);
+vec3 better_normalize(vec3 in_vec);
+
 void main()
 {
-	vec4 output_color = vec4(0.0);
-
 	vec4 diffuse_tex = vec4(0.0);
 	vec4 specular_tex = vec4(0.0);
 	float shininess = 0.0;
@@ -40,59 +46,92 @@ void main()
 		shininess = bottom_material.shininess;
 	}
 
+	vec4 output_color = vec4(0.0);
 	for(int i=0; i<NUM_LIGHTS; i++) {
 		Light cur_light = lights[i];
 
+		vec4 light_dir = vec4(light_normal_mat * cur_light.dir.xyz, 0.0);
+		light_dir = better_normalize(light_dir);
 		vec4 light_pos = view * cur_light.pos;
-		vec3 light_diff = vec3(frag_pos - light_pos);
-		float light_distance = length(light_diff);
-		vec4 light_dir = vec4(normalize(light_diff), 0.0);
-		vec4 reflect_dir = reflect(light_dir, norm); 
-
-		float attenuation = 1;
-		if ((cur_light.constant != 0.0) ||
-			((light_distance != 0.0) &&
-				(cur_light.linear != 0.0) ||
-				(cur_light.quadratic != 0.0))
-		) {
-			attenuation = 1.0 / (
-				cur_light.constant +
-				(cur_light.linear * light_distance) +
-				(cur_light.quadratic * (light_distance * light_distance)));
-		}
+		vec4 light_to_frag_dir = better_normalize(frag_pos - light_pos);
+		float light_distance = distance(frag_pos, light_pos);
 		
-		float theta = dot(vec3(light_dir), normalize(light_normal_mat * vec3(cur_light.dir)));
-		float damping_angle_cosine = cur_light.inner_angle_cosine - cur_light.outer_angle_cosine;
-		float eye_to_outer_cone_angle_cosine = theta - cur_light.outer_angle_cosine;
-		float intensity = clamp((eye_to_outer_cone_angle_cosine / damping_angle_cosine), 0.0, 1.0);
+		float spotlight = calc_spotlight_intensity(light_to_frag_dir, light_dir, cur_light.inner_angle_cosine, cur_light.outer_angle_cosine);
+		float attenuation = calc_attenuation(light_distance, cur_light.constant, cur_light.linear, cur_light.quadratic);
+		vec4 light_calc = calc_light(norm, light_to_frag_dir, frag_pos, shininess, diffuse_tex, specular_tex, cur_light.ambient, cur_light.diffuse, cur_light.specular);
 
-		float diffuse_scale = max(dot(norm, -light_dir), 0.0);
-		float specular_alignment = max(dot(normalize(-vec3(frag_pos)), vec3(reflect_dir)), 0.0);
-		float specular_scale = pow(specular_alignment, shininess);
-
-		vec4 ambient = diffuse_tex * cur_light.ambient;
-		vec4 diffuse = diffuse_tex * diffuse_scale * cur_light.diffuse;
-		vec4 specular = specular_tex * specular_scale * cur_light.specular;
-
-		output_color += (ambient + diffuse + specular) * attenuation * intensity;
+		output_color += light_calc * attenuation * spotlight;
 	}
 
-	for(int i=0; i<NUM_DIRECTIONAL_LIGHTS; i++) {
+	for(int i=1; i<NUM_DIRECTIONAL_LIGHTS; i++) {
 		Directional_Light cur_light = directional_lights[i];
 
-		vec4 light_dir = vec4(normalize(light_normal_mat * vec3(cur_light.dir)), 0.0);
-		vec4 reflect_dir = reflect(light_dir, norm); 
-
-		float diffuse_scale = max(dot(norm, -light_dir), 0.0);
-		float specular_alignment = max(dot(normalize(-frag_pos), reflect_dir), 0.0);
-		float specular_scale = pow(specular_alignment, shininess);
-
-		vec4 ambient = diffuse_tex * cur_light.ambient;
-		vec4 diffuse = diffuse_tex * diffuse_scale * cur_light.diffuse;
-		vec4 specular = specular_tex * specular_scale * cur_light.specular;
-
-		output_color += (ambient + diffuse + specular);
+		vec4 light_dir = vec4(light_normal_mat * cur_light.dir.xyz, 0.0);
+		light_dir = better_normalize(light_dir);
+		output_color += calc_light(norm, light_dir, frag_pos, shininess, diffuse_tex, specular_tex, cur_light.ambient, cur_light.diffuse, cur_light.specular);
 	}
 
 	frag_color = output_color;
+}
+
+float calc_attenuation(float light_distance, float constant, float linear, float quadratic) {
+	float attenuation = 1;
+	if ((constant != 0.0) ||
+		((light_distance != 0.0) &&
+			((linear != 0.0) ||
+			(quadratic != 0.0)))
+	) {
+		attenuation = 1.0 / (
+			constant +
+			(linear * light_distance) +
+			(quadratic * (light_distance * light_distance)));
+	}
+
+	return attenuation;
+}
+
+float calc_spotlight_intensity(vec4 light_to_frag_dir, vec4 light_dir, float inner_angle_cosine, float outer_angle_cosine) {
+	return calc_spotlight_intensity(light_to_frag_dir.xyz, light_dir.xyz, inner_angle_cosine, outer_angle_cosine);
+}
+
+float calc_spotlight_intensity(vec3 light_to_frag_dir, vec3 light_dir, float inner_angle_cosine, float outer_angle_cosine) {
+	if (all(equal(light_dir, vec3(0.0)))) {
+		return 1.0;
+	}
+
+	float theta = dot(light_to_frag_dir, light_dir);
+	float damping_angle_cosine = inner_angle_cosine - outer_angle_cosine;
+	float eye_to_outer_cone_angle_cosine = theta - outer_angle_cosine;
+	return clamp((eye_to_outer_cone_angle_cosine / damping_angle_cosine), 0.0, 1.0);
+}
+
+vec4 calc_light(vec4 normal, vec4 light_to_frag_dir, vec4 frag_pos, float shininess, vec4 diffuse_tex, vec4 specular_tex, vec4 ambient_light, vec4 diffuse_light, vec4 specular_light) {
+	return calc_light(normal.xyz, light_to_frag_dir.xyz, frag_pos.xyz, shininess, diffuse_tex, specular_tex, ambient_light, diffuse_light, specular_light);
+}
+
+vec4 calc_light(vec3 normal, vec3 light_to_frag_dir, vec3 frag_pos, float shininess, vec4 diffuse_tex, vec4 specular_tex, vec4 ambient_light, vec4 diffuse_light, vec4 specular_light) {
+	vec3 reflect_dir = reflect(light_to_frag_dir, normal);
+	float diffuse_scale = max(dot(normal, -light_to_frag_dir), 0.0);
+	float specular_alignment = max(dot(better_normalize(-frag_pos), reflect_dir), 0.0);
+	float specular_scale = pow(specular_alignment, shininess);
+
+	vec4 ambient = diffuse_tex * ambient_light;
+	vec4 diffuse = diffuse_tex * diffuse_scale * diffuse_light;
+	vec4 specular = specular_tex * specular_scale * specular_light;
+
+	return ambient + diffuse + specular;
+}
+
+vec4 better_normalize(vec4 in_vec) {
+	return vec4(better_normalize(in_vec.xyz), 0.0);
+}
+
+vec3 better_normalize(vec3 in_vec){
+	vec3 zero = vec3(0.0);
+	if (all(equal(in_vec, zero))) {
+		return zero;
+	} else if (any(not(equal(in_vec, zero)))) {
+		return normalize(in_vec);
+	}
+
 }

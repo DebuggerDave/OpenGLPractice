@@ -34,7 +34,7 @@ const unsigned int SCR_WIDTH = 1280;
 const unsigned int SCR_HEIGHT = 720;
 
 // camera
-Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
+Camera camera(glm::vec3(0.0f, 0.0f, 0.0f));
 float lastX = SCR_WIDTH / 2.0f;
 float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
@@ -126,7 +126,7 @@ int main()
 	};
 	// world space positions of our cubes
 	glm::vec3 cube_positions[] = {
-		glm::vec3( 0.0f,  0.0f,  0.0f),
+		glm::vec3( 0.0f,  0.0f,  -3.0f),
 		glm::vec3( 2.0f,  5.0f, -15.0f),
 		glm::vec3(-1.5f, -2.2f, -2.5f),
 		glm::vec3(-3.8f, -2.0f, -12.3f),
@@ -220,10 +220,10 @@ int main()
 		light_block.lights[0].ambient = light_color * ambient_scale;
 		light_block.lights[0].diffuse = light_color;
 		light_block.lights[0].specular = light_color;
-    	light_block.lights[0].inner_angle_cosine = glm::cos(std::numbers::pi);
-    	light_block.lights[0].outer_angle_cosine = glm::cos(std::numbers::pi);
-    	light_block.lights[0].constant = 1.0f;
-    	light_block.lights[0].linear = 0.09f;
+		light_block.lights[0].inner_angle_cosine = glm::cos(std::numbers::pi);
+		light_block.lights[0].outer_angle_cosine = glm::cos(std::numbers::pi);
+		light_block.lights[0].constant = 1.0f;
+		light_block.lights[0].linear = 0.09f;
 		light_block.lights[0].quadratic = 0.032f;
 
 		// spotlight
@@ -232,10 +232,10 @@ int main()
 		light_block.lights[1].ambient = light_color * ambient_scale;
 		light_block.lights[1].diffuse = light_color;
 		light_block.lights[1].specular = light_color;
-    	light_block.lights[1].inner_angle_cosine = glm::cos(glm::radians(15.0f));
-    	light_block.lights[1].outer_angle_cosine = glm::cos(glm::radians(25.0f));
-    	light_block.lights[1].constant = 1.0f;
-    	light_block.lights[1].linear = 0.09f;
+		light_block.lights[1].inner_angle_cosine = glm::cos(glm::radians(15.0f));
+		light_block.lights[1].outer_angle_cosine = glm::cos(glm::radians(25.0f));
+		light_block.lights[1].constant = 1.0f;
+		light_block.lights[1].linear = 0.09f;
 		light_block.lights[1].quadratic = 0.032f;
 	}
 
@@ -301,7 +301,7 @@ int main()
 		light_shader.setMat4("projection", projection);
 		glBindVertexArray(lightVAO);
 
-		// normal lights
+		// non-directional lights
 		for (int i=0; i<NUM_LIGHTS; i++) {
 			glm::vec4 zero(0.0f);
 			Light cur_light = light_block.lights[i];

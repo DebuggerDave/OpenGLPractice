@@ -54,12 +54,12 @@ public:
 
 private:
 	// default values
-	static const float defaultPitch;
-	static const float defaultYaw;
-	static const float defaultSpeed;
-	static const float defaultSensitivity;
-	static const float defaultZoom;
-	static const glm::vec3 worldUp;
+	inline static const float defaultSpeed = 2.5f;
+	inline static const float defaultSensitivity = 0.1f;
+	inline static const float defaultZoom = 45.0f;
+	inline static const float defaultPitch = 0.0f;
+	inline static const float defaultYaw = -90.0f;
+	inline static const glm::vec3 worldUp = glm::normalize(glm::vec3(0.0f, 1.0f, 0.0f));
 
 	// Calculates the front vector from the Camera's (updated) Euler Angles
 	void updateCameraVectors();

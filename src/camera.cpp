@@ -1,12 +1,5 @@
 #include "camera.h"
 
-const float Camera::defaultSpeed = 2.5f;
-const float Camera::defaultSensitivity = 0.1f;
-const float Camera::defaultZoom = 45.0f;
-const float Camera::defaultPitch = 0.0f;
-const float Camera::defaultYaw = -90.0f;
-const glm::vec3 Camera::worldUp(glm::normalize(glm::vec3(0.0f, 1.0f, 0.0f)));
-
 Camera::Camera(glm::vec3 position, float yaw, float pitch) :
 	movementSpeed(defaultSpeed),
 	mouseSensitivity(defaultSensitivity),
