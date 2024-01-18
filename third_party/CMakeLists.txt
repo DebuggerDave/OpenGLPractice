@@ -26,11 +26,6 @@ target_link_libraries(opengl_practice PRIVATE glm::glm)
 target_include_directories(opengl_practice PRIVATE
                             ${CMAKE_CURRENT_SOURCE_DIR}/stb)
 
-# nlohmann_json
-set(JSON_BuildTests OFF CACHE INTERNAL "")
-add_subdirectory(json)
-target_link_libraries(opengl_practice PRIVATE nlohmann_json::nlohmann_json)
-
 # assimp
 set(BUILD_SHARED_LIBS OFF)
 set(ASSIMP_BUILD_TESTS OFF)

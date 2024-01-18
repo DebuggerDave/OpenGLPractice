@@ -16,8 +16,6 @@
 #include "shader.h"
 #include "camera.h"
 
-#include "nlohmann/json.hpp"
-
 #include "shader_macros.h"
 
 #define STRINGIFY_MACRO_EXPANSION(x) #x
