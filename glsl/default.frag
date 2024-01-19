@@ -1,21 +1,18 @@
 #version 460 core
+
 out vec4 frag_color;
 
 in vec2 tex_coord;
 in vec4 norm;
-flat in vec4 norm_local_space;
 in vec4 frag_pos;
 
 struct Material {
-	sampler2D diffuse;
-	sampler2D specular;
+	sampler2D texture_diffuse0;
+	sampler2D texture_specular0;
 	float shininess;
 };
 
-uniform Material top_material;
-uniform Material side_material;
-uniform Material bottom_material;
-
+uniform Material material;
 uniform mat3 light_normal_mat;
 uniform mat4 view;
 
@@ -29,22 +26,9 @@ vec3 better_normalize(vec3 in_vec);
 
 void main()
 {
-	vec4 diffuse_tex = vec4(0.0);
-	vec4 specular_tex = vec4(0.0);
-	float shininess = 0.0;
-	if (norm_local_space.y == 1) {
-		diffuse_tex = texture(top_material.diffuse, tex_coord);
-		specular_tex = texture(top_material.specular, tex_coord);
-		shininess = top_material.shininess;
-	} else if (norm_local_space.y == 0) {
-		diffuse_tex = texture(side_material.diffuse, tex_coord);
-		specular_tex = texture(side_material.specular, tex_coord);
-		shininess = side_material.shininess;
-	} else if (norm_local_space.y == -1) {
-		diffuse_tex = texture(bottom_material.diffuse, tex_coord);
-		specular_tex = texture(bottom_material.specular, tex_coord);
-		shininess = bottom_material.shininess;
-	}
+	vec4 diffuse_tex = texture(material.texture_diffuse0, tex_coord);
+	vec4 specular_tex = texture(material.texture_specular0, tex_coord);
+	float shininess = material.shininess;
 
 	vec4 output_color = vec4(0.0);
 	for(int i=0; i<NUM_LIGHTS; i++) {

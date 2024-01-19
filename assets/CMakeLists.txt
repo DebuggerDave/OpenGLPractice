@@ -13,6 +13,11 @@ function(COPY_TO_BINARY DATA DEPS)
 	set(DEPS "${DEPS}" "${LOCAL_DEPS}" PARENT_SCOPE)
 endfunction()
 
+set(3D_OBJECTS
+	"${CMAKE_CURRENT_SOURCE_DIR}/cube.obj"
+	"${CMAKE_CURRENT_SOURCE_DIR}/grass.obj"
+	"${CMAKE_CURRENT_SOURCE_DIR}/grass.mtl"
+)
 
 set(GENERATED_SPRITES
 	"${CMAKE_CURRENT_SOURCE_DIR}/grass_top.png"
@@ -50,6 +55,7 @@ else()
 	)
 endif()
 
+COPY_TO_BINARY("${3D_OBJECTS}" "${DEPS}")
 COPY_TO_BINARY("${GENERATED_SPRITES}" "${DEPS}")
 COPY_TO_BINARY("${STATIC_SPRITES}" "${DEPS}")
 

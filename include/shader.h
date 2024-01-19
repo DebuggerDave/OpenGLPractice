@@ -14,7 +14,8 @@ public:
 	Shader(const char* vertexPath, const char* fragmentPath, const char* geometryPath = nullptr, const char* macros = nullptr);
 
 	// activate the shader
-	void use();
+	void activate();
+	void deactivate();
 	// utility uniform functions
 	// ------------------------------------------------------------------------
 	void setBool(const std::string &name, bool value) const;
@@ -34,10 +35,10 @@ public:
 
 private:
 	void checkCompileErrors(GLuint shader, std::string type);
-	// update the line numbers in logs to account for the injected code
+	// update the line numbers in logs to account for the injected shader code
 	void updateLineNumbers(GLchar* log, GLsizei max_size);
-	// insert macro string after '#version' statement in code
-	void insertMacros(std::string &code, std::string macros);
+	// inject code after '#version' statement in shader
+	void insertMacros(std::string &code, std::string injectible);
 
 	// number of lines of code added to the glsl files
 	int num_injected_lines = 0;

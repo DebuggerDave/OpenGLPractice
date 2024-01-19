@@ -115,9 +115,14 @@ Shader::Shader(const char* vertexPath, const char* fragmentPath, const char* geo
 
 }
 
-void Shader::use()
+void Shader::activate()
 {
 	glUseProgram(id);
+}
+
+void Shader::deactivate()
+{
+	glUseProgram(0);
 }
 
 void Shader::setBool(const std::string &name, bool value) const
@@ -239,7 +244,7 @@ void Shader::checkCompileErrors(GLuint shader, std::string type)
 	}
 }
 
-void Shader::insertMacros(std::string &code, std::string macros)
+void Shader::insertMacros(std::string &code, std::string injectible)
 {
 	size_t version_pos = code.find_first_of("#version");
 	size_t insertion_pos = 0;
@@ -249,5 +254,5 @@ void Shader::insertMacros(std::string &code, std::string macros)
 			insertion_pos++;
 		}
 	}
-	code.insert(insertion_pos, macros);
+	code.insert(insertion_pos, injectible);
 }
