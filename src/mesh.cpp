@@ -9,7 +9,7 @@ Mesh::Mesh() :
 {}
 
 
-Mesh::Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices, std::vector<Texture> textures) :
+Mesh::Mesh(const std::vector<Vertex>& vertices, const std::vector<unsigned int>& indices, const std::vector<Texture>& textures) :
     VAO(0), VBO(0), EBO(0),
     vertices(vertices), indices(indices), textures(textures)
 {
@@ -74,7 +74,7 @@ void Mesh::setupMesh()
     glBindVertexArray(0);
 }
 
-void Mesh::Draw(Shader &shader) 
+void Mesh::Draw(const Shader& shader)
 {
     // textures
     for(unsigned int diff_num=0, spec_num=0, i=0; i < textures.size(); i++)

@@ -13,20 +13,24 @@
 class Model 
 {
     public:
-        Model(std::string path);
-        void Draw(Shader &shader);
+        Model(const std::string& path);
+        void Draw(const Shader& shader);
 
     private:
         std::vector<Mesh> meshes;
         std::string directory;
-        std::unordered_map<std::string, Texture> path_texture_map;
+        std::unordered_map<std::string, Mesh::Texture> path_texture_map;
 
-        void loadModel(std::string path);
-        void processNode(const aiNode *node, const aiScene *scene);
-        void processNodeRecursion(const aiNode *node, const aiScene *scene, unsigned int& mesh_num);
-        Mesh processMesh(aiMesh *mesh, const aiScene *scene);
-        std::vector<Texture> loadMaterialTextures(aiMaterial *mat, aiTextureType ai_type, TexType type);
-		bool TextureFromFile(std::string filename, unsigned int& tex_id);
+        void loadModel(const std::string& path);
+        void processNode(const aiNode* node, const aiScene* scene);
+        void processNodeRecursion(const aiNode* node, const aiScene* scene, unsigned int& mesh_num);
+        std::vector<Mesh::Vertex> processVertices(const aiMesh* mesh);
+        std::vector<unsigned int> processIndices(const aiMesh* mesh);
+        std::vector<Mesh::Texture> processTextures(const aiMesh* mesh, const aiScene* scene);
+        Mesh processMesh(const aiMesh* mesh, const aiScene* scene);
+        std::vector<Mesh::Texture> loadMaterialTextures(aiMaterial* mat, const aiTextureType ai_type, const Mesh::TexType type);
+        void createTex(unsigned int& tex_id, const unsigned char* data, const int width, const int height, const int num_components);
+		bool texFromFile(const std::string& filename, unsigned int& tex_id);
 };
 
 #endif
