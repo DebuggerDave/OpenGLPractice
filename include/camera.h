@@ -11,8 +11,6 @@
 class Camera
 {
 public:
-	// Defines several possible options for camera movement.
-	// Used as abstraction to stay away from window-system specific input methods
 	enum Movement {
 		moveForward,
 		moveBackward,
@@ -22,6 +20,30 @@ public:
 		moveDown
 	};
 
+	Camera(const glm::vec3& position=glm::vec3(0.0f, 0.0f, 0.0f), const float yaw=defaultYaw, const float pitch=defaultPitch);
+	Camera(const float x=0, const float y=0, const float z=0, const float yaw=defaultYaw, const float pitch=defaultPitch);
+
+	// Returns the view matrix calculated using Euler Angles and the LookAt Matrix
+	glm::mat4 getViewMatrix() const;
+	// make in direction indicated by direction param
+	void processMovement(const Movement direction, const float deltaTime);
+	// Processes input received from a mouse input system. Expects the offset value in both the x and y direction.
+	void processRotation(const float xoffset, const float yoffset, const GLboolean constrainPitch=true);
+	// Processes input received from a mouse scroll-wheel event. Only requires input on the vertical wheel-axis
+	void processZoom(const float yoffset);
+
+	glm::vec3 getPosition() const;
+	glm::vec3 getFront() const;
+	float getZoom() const;
+
+private:
+	// default values
+	inline static const float defaultSpeed = 2.5f;
+	inline static const float defaultSensitivity = 0.1f;
+	inline static const float defaultZoom = 45.0f;
+	inline static const float defaultPitch = 0.0f;
+	inline static const float defaultYaw = -90.0f;
+	inline static const glm::vec3 worldUp = glm::normalize(glm::vec3(0.0f, 1.0f, 0.0f));
 	// Camera Attributes
 	glm::vec3 position;
 	glm::vec3 front;
@@ -34,32 +56,6 @@ public:
 	float movementSpeed;
 	float mouseSensitivity;
 	float zoom;
-
-	// Constructor with vectors
-	Camera(glm::vec3 position=glm::vec3(0.0f, 0.0f, 0.0f), float yaw=defaultYaw, float pitch=defaultPitch);
-	// Constructor with scalar values
-	Camera(float x=0, float y=0, float z=0, float yaw=defaultYaw, float pitch=defaultPitch);
-
-	// Returns the view matrix calculated using Euler Angles and the LookAt Matrix
-	glm::mat4 getViewMatrix();
-
-	// Processes input received from any keyboard-like input system. Accepts input parameter in the form of camera defined ENUM (to abstract it from windowing systems)
-	void processMovement(Movement direction, float deltaTime);
-
-	// Processes input received from a mouse input system. Expects the offset value in both the x and y direction.
-	void processRotation(float xoffset, float yoffset, GLboolean constrainPitch=true);
-
-	// Processes input received from a mouse scroll-wheel event. Only requires input on the vertical wheel-axis
-	void processZoom(float yoffset);
-
-private:
-	// default values
-	inline static const float defaultSpeed = 2.5f;
-	inline static const float defaultSensitivity = 0.1f;
-	inline static const float defaultZoom = 45.0f;
-	inline static const float defaultPitch = 0.0f;
-	inline static const float defaultYaw = -90.0f;
-	inline static const glm::vec3 worldUp = glm::normalize(glm::vec3(0.0f, 1.0f, 0.0f));
 
 	// Calculates the front vector from the Camera's (updated) Euler Angles
 	void updateCameraVectors();

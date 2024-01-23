@@ -1,33 +1,33 @@
 #include "camera.h"
 
-Camera::Camera(glm::vec3 position, float yaw, float pitch) :
+Camera::Camera(const glm::vec3& position, const float yaw, const float pitch) :
 	movementSpeed(defaultSpeed),
 	mouseSensitivity(defaultSensitivity),
-	zoom(defaultZoom)
+	zoom(defaultZoom),
+	position(position),
+	yaw(yaw),
+	pitch(pitch)
 {
-	this->position = position;
-	this->yaw = yaw;
-	this->pitch = pitch;
 	updateCameraVectors();
 }
 
-Camera::Camera(float x, float y, float z, float yaw, float pitch) :
+Camera::Camera(const float x, const float y, const float z, const float yaw, const float pitch) :
 	movementSpeed(defaultSpeed),
 	mouseSensitivity(defaultSensitivity),
-	zoom(defaultZoom)
+	zoom(defaultZoom),
+	position(glm::vec3(x, y, z)),
+	yaw(yaw),
+	pitch(pitch)
 {
-	this->position = glm::vec3(x, y, z);
-	this->yaw = yaw;
-	this->pitch = pitch;
 	updateCameraVectors();
 }
 
-glm::mat4 Camera::getViewMatrix()
+glm::mat4 Camera::getViewMatrix() const
 {
 	return glm::lookAt(position, position + front, up);
 }
 
-void Camera::processMovement(Movement direction, float deltaTime)
+void Camera::processMovement(const Movement direction, const float deltaTime)
 {
 	float velocity = movementSpeed * deltaTime;
 	if (direction == moveForward)
@@ -44,13 +44,10 @@ void Camera::processMovement(Movement direction, float deltaTime)
 		position -= up * velocity;
 }
 
-void Camera::processRotation(float xoffset, float yoffset, GLboolean constrainPitch)
+void Camera::processRotation(const float xoffset, const float yoffset, const GLboolean constrainPitch)
 {
-	xoffset *= mouseSensitivity;
-	yoffset *= mouseSensitivity;
-
-	yaw += xoffset;
-	pitch += yoffset;
+	yaw += xoffset * mouseSensitivity;
+	pitch += yoffset * mouseSensitivity;
 
 	// Make sure that when pitch is out of bounds, screen doesn't get flipped
 	if (constrainPitch)
@@ -73,6 +70,21 @@ void Camera::processZoom(float yoffset)
 		zoom = 1.0f;
 	if (zoom >= 45.0f)
 		zoom = 45.0f;
+}
+
+glm::vec3 Camera::getPosition() const
+{
+	return position;
+}
+
+glm::vec3 Camera::getFront() const
+{
+	return front;
+}
+
+float Camera::getZoom() const
+{
+	return zoom;
 }
 
 void Camera::updateCameraVectors()

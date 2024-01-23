@@ -16,6 +16,7 @@
 #include "shader.h"
 #include "camera.h"
 #include "model.h"
+#include "utils.h"
 
 #include "shader_macros.h"
 
@@ -62,11 +63,11 @@ int main()
 	GLFWwindow* window = init();
 	if (!window) return -1;
 
-	Shader default_shader("./glsl/default.vert", "./glsl/default.frag", nullptr, "./glsl/include/shader_macros.h");
+	Shader default_shader("./glsl/default.vert", "./glsl/default.frag", "", "./glsl/include/shader_macros.h");
 	default_shader.activate();
 	default_shader.setFloat("material.shininess", std::pow(2, 6));
 
-	Shader light_shader("./glsl/light.vert", "./glsl/light.frag", nullptr, "./glsl/include/shader_macros.h");
+	Shader light_shader("./glsl/light.vert", "./glsl/light.frag", "", "./glsl/include/shader_macros.h");
 	light_shader.activate();
 
 	float ambient_scale = 0.2f;
@@ -88,8 +89,8 @@ int main()
 			},
 			//spotlight
 			{
-				.dir = glm::vec4(glm::normalize(camera.front), 0.0f),
-				.pos = glm::vec4(camera.position, 1.0f),
+				.dir = glm::vec4(glm::normalize(camera.getFront()), 0.0f),
+				.pos = glm::vec4(camera.getPosition(), 1.0f),
 				.ambient = light_color * ambient_scale,
 				.diffuse = light_color,
 				.specular = light_color,
@@ -126,21 +127,21 @@ int main()
 		unsigned int ubo;
 		glGenBuffers(1, &ubo);
 		glBindBuffer(GL_UNIFORM_BUFFER, ubo);
-		GLuint ubo_index_default = glGetUniformBlockIndex(default_shader.id, "LightBlock");
-		GLuint ubo_index_light = glGetUniformBlockIndex(light_shader.id, "LightBlock");
+		GLuint ubo_index_default = glGetUniformBlockIndex(default_shader.getId(), "LightBlock");
+		GLuint ubo_index_light = glGetUniformBlockIndex(light_shader.getId(), "LightBlock");
 		GLint ubo_size_default, ubo_size_light = 0;
-		glGetActiveUniformBlockiv(default_shader.id, ubo_index_default, GL_UNIFORM_BLOCK_DATA_SIZE, &ubo_size_default);
+		glGetActiveUniformBlockiv(default_shader.getId(), ubo_index_default, GL_UNIFORM_BLOCK_DATA_SIZE, &ubo_size_default);
 		if (sizeof(light_block) != ubo_size_default) {
-			std::cerr << "uniform block sizes do not match";
+			utils::err() << "uniform block sizes do not match" << utils::endl;
 			return -1;
 		}
 		GLvoid* buffer = malloc(sizeof(light_block));
 		if (buffer == NULL) {
-			std::cout << "failed to create uniform block buffer";
+			utils::err() << "failed to create uniform block buffer" << utils::endl;
 			return -1;
 		}
-		light_block.lights[1].dir = glm::vec4(camera.front, 1.0f);
-		light_block.lights[1].pos = glm::vec4(camera.position, 1.0f);
+		light_block.lights[1].dir = glm::vec4(camera.getFront(), 1.0f);
+		light_block.lights[1].pos = glm::vec4(camera.getPosition(), 1.0f);
 		memcpy(buffer, &light_block, sizeof(light_block));
 		glBufferData(GL_UNIFORM_BUFFER, sizeof(light_block), buffer, GL_DYNAMIC_DRAW);
 		glBindBufferBase(GL_UNIFORM_BUFFER, ubo_index_default, ubo);
@@ -150,7 +151,7 @@ int main()
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		// transformations
-		glm::mat4 projection = glm::perspective(glm::radians(camera.zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+		glm::mat4 projection = glm::perspective(glm::radians(camera.getZoom()), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
 		glm::mat4 view = camera.getViewMatrix();
 
 		// lights
@@ -163,7 +164,7 @@ int main()
 		for (int i=0; i<NUM_LIGHTS; i++) {
 			glm::vec4 zero(0.0f);
 			Light cur_light = light_block.lights[i];
-			if (glm::all(glm::equal(cur_light.pos, glm::vec4(camera.position, 1.0))) || (
+			if (glm::all(glm::equal(cur_light.pos, glm::vec4(camera.getPosition(), 1.0))) || (
 					(glm::all(glm::equal(cur_light.ambient, zero))) &&
 					(glm::all(glm::equal(cur_light.diffuse, zero))) &&
 					(glm::all(glm::equal(cur_light.specular, zero)))
@@ -193,7 +194,7 @@ int main()
 			light_shader.setVec4("light_color", cur_light.diffuse);
 			glm::mat4 model = glm::mat4(1.0f);
 
-			model = glm::translate(model, camera.position + (glm::vec3(-cur_light.dir) * 100.0f));
+			model = glm::translate(model, camera.getPosition() + (glm::vec3(-cur_light.dir) * 100.0f));
 			model = glm::scale(model, glm::vec3(10.0f));
 
 			light_shader.setMat4("model", model);
@@ -241,7 +242,7 @@ GLFWwindow* init()
 	GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "LearnOpenGL", NULL, NULL);
 	if (window == NULL)
 	{
-		std::cout << "Failed to create GLFW window" << std::endl;
+		utils::err() << "Failed to create GLFW window" << utils::endl;
 		glfwTerminate();
 		return nullptr;
 	}
@@ -254,7 +255,7 @@ GLFWwindow* init()
 	// load all OpenGL function pointers
 	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
 	{
-		std::cout << "Failed to initialize GLAD" << std::endl;
+		utils::err() << "Failed to initialize GLAD" << utils::endl;
 		return nullptr;
 	}
 

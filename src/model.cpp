@@ -11,13 +11,14 @@
 #include "stb_image.h"
 
 #include "shader.h"
+#include "utils.h"
 
 Model::Model(const std::string& path)
 {
 	loadModel(path);
 }
 
-void Model::Draw(const Shader& shader)
+void Model::Draw(const Shader& shader) const
 {
     for(unsigned int i = 0; i < meshes.size(); i++) {
         meshes[i].Draw(shader);
@@ -30,7 +31,7 @@ void Model::loadModel(const std::string& path)
     const aiScene *scene = import.ReadFile(path, aiProcess_Triangulate | aiProcess_FlipUVs);	
     if(!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) 
     {
-        std::cout << "ERROR::ASSIMP::" << import.GetErrorString() << " in '" << std::source_location::current().function_name() << "'\n";
+        utils::err() << "ERROR::ASSIMP::" << import.GetErrorString() << "" << utils::endl;
         return;
     }
 
@@ -62,7 +63,8 @@ void Model::processNodeRecursion(const aiNode* node, const aiScene* scene, unsig
     }
 }
 
-std::vector<Mesh::Vertex> Model::processVertices(const aiMesh* mesh) {
+std::vector<Mesh::Vertex> Model::processVertices(const aiMesh* mesh) const
+{
     std::vector<Mesh::Vertex> vertices(mesh->mNumVertices);
 
     for (unsigned int i = 0; i < mesh->mNumVertices; i++) {
@@ -96,14 +98,14 @@ std::vector<Mesh::Vertex> Model::processVertices(const aiMesh* mesh) {
     return vertices;
 }
 
-std::vector<unsigned int> Model::processIndices(const aiMesh* mesh)
+std::vector<unsigned int> Model::processIndices(const aiMesh* mesh) const
 {
     static const int expected_face_vertices = 3;
     std::vector<unsigned int> indices(mesh->mNumFaces * expected_face_vertices);
 
     for(unsigned int i = 0; i < mesh->mNumFaces; i++) {
 		if (mesh->mFaces[i].mNumIndices != expected_face_vertices) {
-			std::cerr << "expected " << expected_face_vertices << " vertices in mesh face, but received " << mesh->mFaces[i].mNumIndices << " vertices in '" << std::source_location::current().function_name() << "'\n";
+			utils::err() << "expected " << expected_face_vertices << " vertices in mesh face, but received " << mesh->mFaces[i].mNumIndices << " vertices" << utils::endl;
 		}
 
     	for(unsigned int j = 0; j < expected_face_vertices; j++) {
@@ -143,7 +145,7 @@ Mesh Model::processMesh(const aiMesh* mesh, const aiScene* scene)
     return Mesh(std::move(vertices), std::move(indices), std::move(textures));
 }
 
-std::vector<Mesh::Texture> Model::loadMaterialTextures(aiMaterial* mat, const aiTextureType ai_type, const Mesh::TexType type)
+std::vector<Mesh::Texture> Model::loadMaterialTextures(const aiMaterial* mat, const aiTextureType ai_type, const Mesh::TexType type)
 {
     std::vector<Mesh::Texture> textures;
 
@@ -216,7 +218,7 @@ bool Model::texFromFile(const std::string& filename, unsigned int& tex_id)
     }
     else
     {
-        std::cerr << "Mesh::Texture failed to load at path: " << file_path << " in '" << std::source_location::current().function_name() << "'\n";
+        utils::err() << "Mesh::Texture failed to load at path: " << file_path << utils::endl;
         succ = false;
     }
 

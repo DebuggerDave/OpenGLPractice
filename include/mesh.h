@@ -35,7 +35,7 @@ class Mesh {
         Mesh& operator=(const Mesh& other) = delete;
         Mesh& operator=(Mesh&& other) noexcept;
 
-        void Draw(const Shader& shader);
+        void Draw(const Shader& shader) const;
     private:
         //  render data
         unsigned int VAO, VBO, EBO;
@@ -43,6 +43,7 @@ class Mesh {
         std::vector<unsigned int> indices;
         std::vector<Texture> textures;
 
+        // initial setup
         void setupMesh();
 };  
 

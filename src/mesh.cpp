@@ -74,7 +74,7 @@ void Mesh::setupMesh()
     glBindVertexArray(0);
 }
 
-void Mesh::Draw(const Shader& shader)
+void Mesh::Draw(const Shader& shader) const
 {
     // textures
     for(unsigned int diff_num=0, spec_num=0, i=0; i < textures.size(); i++)
