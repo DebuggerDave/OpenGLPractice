@@ -25,13 +25,14 @@ public:
 
 	// Returns the view matrix calculated using Euler Angles and the LookAt Matrix
 	glm::mat4 getViewMatrix() const;
-	// make in direction indicated by direction param
+	// move in direction indicated by direction param
 	void processMovement(const Movement direction, const float deltaTime);
 	// Processes input received from a mouse input system. Expects the offset value in both the x and y direction.
 	void processRotation(const float xoffset, const float yoffset, const GLboolean constrainPitch=true);
 	// Processes input received from a mouse scroll-wheel event. Only requires input on the vertical wheel-axis
 	void processZoom(const float yoffset);
 
+	// getters
 	glm::vec3 getPosition() const;
 	glm::vec3 getFront() const;
 	float getZoom() const;

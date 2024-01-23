@@ -48,7 +48,7 @@ public:
 private:
 	// initial setup
 	bool setupShader(const std::string& vertex_path, const std::string& fragment_path, const std::string& geometry_path, const std::string& injectible_path);
-	// compile and link shader code
+	// compile and attach shader code
 	bool compileAndAttach(const std::string& code, const ProgramType type) const;
 	// read file path and return shader code
 	bool readShaderFile(const std::string& path, std::string& out) const;

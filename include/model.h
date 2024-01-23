@@ -43,7 +43,7 @@ class Model
         // create texture from image data
         void createTex(unsigned int& tex_id, const unsigned char* data, const int width, const int height, const int num_components);
         // create texture from file path
-		bool texFromFile(const std::string& filename, unsigned int& tex_id);
+        bool texFromFile(const std::string& filename, unsigned int& tex_id);
 };
 
 #endif
