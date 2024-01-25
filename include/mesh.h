@@ -43,6 +43,7 @@ class Mesh {
         std::vector<unsigned int> indices;
         std::vector<Texture> textures;
 
+        bool readyForSetup() const;
         // initial setup
         void setupMesh();
 };  

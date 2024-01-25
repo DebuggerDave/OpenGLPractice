@@ -47,7 +47,7 @@ void main()
 		output_color += light_calc * attenuation * spotlight;
 	}
 
-	for(int i=1; i<NUM_DIRECTIONAL_LIGHTS; i++) {
+	for(int i=0; i<NUM_DIRECTIONAL_LIGHTS; i++) {
 		Directional_Light cur_light = directional_lights[i];
 
 		vec4 light_dir = vec4(light_normal_mat * cur_light.dir.xyz, 0.0);

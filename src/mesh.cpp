@@ -4,6 +4,8 @@
 #include <string>
 #include <iostream>
 
+#include "utils.h"
+
 Mesh::Mesh() :
     VAO(0), VBO(0), EBO(0)
 {}
@@ -48,8 +50,18 @@ Mesh& Mesh::operator=(Mesh&& other) noexcept
     return *this;
 }
 
+bool Mesh::readyForSetup() const {
+    // textures can be empty
+    return (VAO == 0) && (VBO == 0) && (EBO == 0) && !vertices.empty() && !indices.empty();
+}
+
 void Mesh::setupMesh()
 {
+    if (!readyForSetup()) {
+        utils::err() << "class is not ready for setup" << utils::endl;
+        return;
+    }
+
     glGenVertexArrays(1, &VAO); 
     glBindVertexArray(VAO);
 
