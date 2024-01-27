@@ -28,7 +28,7 @@ void Model::Draw(const Shader& shader) const
 void Model::loadModel(const std::string& path)
 {
     Assimp::Importer import;
-    const aiScene *scene = import.ReadFile(path, aiProcess_Triangulate | aiProcess_FlipUVs);	
+    const aiScene *scene = import.ReadFile(path, aiProcess_Triangulate);
     if(!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) 
     {
         utils::err() << "ERROR::ASSIMP::" << import.GetErrorString() << "" << utils::endl;
@@ -131,6 +131,9 @@ std::vector<Mesh::Texture> Model::processTextures(const aiMesh* mesh, const aiSc
 
 		std::vector<Mesh::Texture> specular_maps = loadMaterialTextures(material, aiTextureType_SPECULAR, Mesh::TexType::Specular);
 		textures.insert(textures.end(), specular_maps.begin(), specular_maps.end());
+
+        std::vector<Mesh::Texture> normal_maps = loadMaterialTextures(material, aiTextureType_HEIGHT, Mesh::TexType::Normal);
+		textures.insert(textures.end(), normal_maps.begin(), normal_maps.end());
 	}
 
     return textures;

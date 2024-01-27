@@ -9,6 +9,7 @@ in vec4 frag_pos;
 struct Material {
 	sampler2D texture_diffuse0;
 	sampler2D texture_specular0;
+	sampler2D texture_normal0;
 	float shininess;
 };
 
@@ -28,6 +29,7 @@ void main()
 {
 	vec4 diffuse_tex = texture(material.texture_diffuse0, tex_coord);
 	vec4 specular_tex = texture(material.texture_specular0, tex_coord);
+	vec4 normal_tex = texture(material.texture_normal0, tex_coord);
 	float shininess = material.shininess;
 
 	vec4 output_color = vec4(0.0);

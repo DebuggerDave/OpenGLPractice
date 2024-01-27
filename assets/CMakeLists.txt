@@ -17,6 +17,8 @@ set(3D_OBJECTS
 	"${CMAKE_CURRENT_SOURCE_DIR}/cube.obj"
 	"${CMAKE_CURRENT_SOURCE_DIR}/grass.obj"
 	"${CMAKE_CURRENT_SOURCE_DIR}/grass.mtl"
+	"${CMAKE_CURRENT_SOURCE_DIR}/backpack.obj"
+	"${CMAKE_CURRENT_SOURCE_DIR}/backpack.mtl"
 )
 
 set(GENERATED_SPRITES
@@ -36,6 +38,11 @@ set(GENERATED_SPRITES
 set(STATIC_SPRITES
 	"${CMAKE_CURRENT_SOURCE_DIR}/awesomeface.png"
 	"${CMAKE_CURRENT_SOURCE_DIR}/container.jpg"
+	"${CMAKE_CURRENT_SOURCE_DIR}/diffuse.jpg"
+	"${CMAKE_CURRENT_SOURCE_DIR}/ao.jpg"
+	"${CMAKE_CURRENT_SOURCE_DIR}/specular.jpg"
+	"${CMAKE_CURRENT_SOURCE_DIR}/normal.png"
+	"${CMAKE_CURRENT_SOURCE_DIR}/roughness.jpg"
 )
 set(DEPS "")
 

@@ -50,6 +50,40 @@ Mesh& Mesh::operator=(Mesh&& other) noexcept
     return *this;
 }
 
+void Mesh::Draw(const Shader& shader) const
+{
+    // textures
+    for(unsigned int tex_nums[NumTexTypes]={0}, i=0; i < textures.size(); i++)
+    {
+        TexType type = textures[i].type;
+        std::string uniform;
+        uniform = "material.texture_" + texTypeToString(type) + std::to_string(tex_nums[(unsigned int)type]++);
+
+        shader.setInt(uniform.c_str(), i);
+        glActiveTexture(GL_TEXTURE0 + i);
+        glBindTexture(GL_TEXTURE_2D, textures[i].id);
+    }
+    glActiveTexture(GL_TEXTURE0);
+
+    // draw
+    glBindVertexArray(VAO);
+    glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
+    glBindVertexArray(0);
+}
+
+std::string Mesh::texTypeToString(const TexType type) const {
+    if (type == Diffuse) {
+        return "diffuse";
+    } else if (type == Specular) {
+        return "specular";
+    } else if (type == Normal) {
+        return "normal";
+    } else {
+        utils::err() << "unable to convert TexType to string, type unknown" << utils::endl;
+        return std::string("unknown");
+    }
+}
+
 bool Mesh::readyForSetup() const {
     // textures can be empty
     return (VAO == 0) && (VBO == 0) && (EBO == 0) && !vertices.empty() && !indices.empty();
@@ -83,32 +117,5 @@ void Mesh::setupMesh()
     glEnableVertexAttribArray(2);	
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, TexCoords));
 
-    glBindVertexArray(0);
-}
-
-void Mesh::Draw(const Shader& shader) const
-{
-    // textures
-    for(unsigned int diff_num=0, spec_num=0, i=0; i < textures.size(); i++)
-    {
-    	TexType name = textures[i].type;
-        std::string uniform;
-        if (name == TexType::Diffuse) {
-            uniform = "material.texture_diffuse" + std::to_string(diff_num++);
-		} else if (name == TexType::Specular) {
-            uniform = "material.texture_specular" + std::to_string(spec_num++);
-		} else {
-            continue;
-        }
-
-        shader.setInt(uniform.c_str(), i);
-        glActiveTexture(GL_TEXTURE0 + i);
-        glBindTexture(GL_TEXTURE_2D, textures[i].id);
-    }
-    glActiveTexture(GL_TEXTURE0);
-
-    // draw
-    glBindVertexArray(VAO);
-    glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
     glBindVertexArray(0);
 }

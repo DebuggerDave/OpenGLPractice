@@ -10,6 +10,4 @@ add_subdirectory(third_party)
 add_subdirectory(glsl)
 add_subdirectory(assets)
 
-set(CMAKE_BUILD_TYPE "DEBUG")
-
 target_include_directories(opengl_practice PRIVATE "${PROJECT_SOURCE_DIR}/include")

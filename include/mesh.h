@@ -18,8 +18,10 @@ class Mesh {
         };
 
         enum TexType {
-	        Diffuse,
-	        Specular
+            Diffuse,
+            Specular,
+            Normal,
+            NumTexTypes
         };
 
         struct Texture {
@@ -43,6 +45,9 @@ class Mesh {
         std::vector<unsigned int> indices;
         std::vector<Texture> textures;
 
+        // convert texture enum to string
+        std::string texTypeToString(const TexType type) const;
+        // check if the class is ready to be setup
         bool readyForSetup() const;
         // initial setup
         void setupMesh();

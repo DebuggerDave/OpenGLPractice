@@ -10,6 +10,7 @@
 #include <fstream>
 #include <limits>
 #include <numbers>
+#include <chrono>
 
 #include "stb_image.h"
 
@@ -70,8 +71,9 @@ int main()
 	Shader light_shader("./glsl/light.vert", "./glsl/light.frag", "", "./glsl/include/shader_macros.h");
 	light_shader.activate();
 
-	float ambient_scale = 0.2f;
+	float ambient_scale = 0.05f;
 	glm::vec4 light_color(1.0f);
+	glm::vec4 zero(0.0f);
 	LightBlock light_block = {
 		.lights = {
 			// point light
@@ -91,9 +93,9 @@ int main()
 			{
 				.dir = glm::vec4(glm::normalize(camera.getFront()), 0.0f),
 				.pos = glm::vec4(camera.getPosition(), 1.0f),
-				.ambient = light_color * ambient_scale,
-				.diffuse = light_color,
-				.specular = light_color,
+				.ambient = zero,//light_color * ambient_scale,
+				.diffuse = zero,//light_color,
+				.specular = zero,//light_color,
 				.inner_angle_cosine = glm::cos(glm::radians(15.0f)),
 				.outer_angle_cosine = glm::cos(glm::radians(25.0f)),
 				.constant = 1.0f,
@@ -110,8 +112,12 @@ int main()
 		}},
 	};
 
+	auto start_time = std::chrono::high_resolution_clock::now();
 	Model grass("./assets/grass.obj");
 	Model light_cube("./assets/cube.obj");
+	Model backpack("./assets/backpack.obj");
+	auto end_time = std::chrono::high_resolution_clock::now();
+	std::cout << "Loaded models in " << std::chrono::duration_cast<std::chrono::seconds>(end_time - start_time).count() << " seconds\n";
 
 	// render loop
 	while (!glfwWindowShouldClose(window))
@@ -218,7 +224,7 @@ int main()
 			default_shader.setMat4("model", model);
 			default_shader.setMat3("normal_mat", glm::transpose(glm::inverse(glm::mat3(view * model))));
 
-			grass.Draw(default_shader);
+			backpack.Draw(default_shader);
 		}
 
 		// glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)

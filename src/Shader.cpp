@@ -113,7 +113,6 @@ void Shader::setMat4(const std::string &name, const glm::mat4 &mat) const
 bool Shader::setupShader(const std::string& vertex_path, const std::string& fragment_path, const std::string& geometry_path, const std::string& injectible_path) {
 	bool success = true;
 	std::string vertex_code, fragment_code, geometry_code, injectible_code;
-	unsigned int local_num_injected_lines = 0;
 
 	success &= readShaderFile(vertex_path, vertex_code);
 	success &= readShaderFile(fragment_path, fragment_code);
@@ -123,7 +122,7 @@ bool Shader::setupShader(const std::string& vertex_path, const std::string& frag
 
 	if (!injectible_path.empty()) {
 		success &= readShaderFile(injectible_path, injectible_code);
-		local_num_injected_lines += std::count(injectible_code.begin(), injectible_code.end(), '\n');
+		num_injected_lines += std::count(injectible_code.begin(), injectible_code.end(), '\n');
 
 		injectCode(vertex_code, injectible_code);
 		injectCode(fragment_code, injectible_code);
@@ -142,10 +141,9 @@ bool Shader::setupShader(const std::string& vertex_path, const std::string& frag
 	glLinkProgram(id);
 	success &= checkCompileErrors(id, Linker);
 
-	if (success) {
-		num_injected_lines = local_num_injected_lines;
-	} else {
+	if (!success) {
 		glDeleteShader(id);
+		num_injected_lines = 0;
 		id = 0;
 	}
 
