@@ -213,6 +213,7 @@ bool Model::texFromFile(const std::string& filename, unsigned int& tex_id)
     int width, height, num_components;
     bool succ = false;
 
+    stbi_set_flip_vertically_on_load(true);
     unsigned char* data = stbi_load(file_path.c_str(), &width, &height, &num_components, 0);
     if (data)
     {

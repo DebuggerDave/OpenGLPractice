@@ -11,6 +11,8 @@
 #include <limits>
 #include <numbers>
 #include <chrono>
+#include <vector>
+#include <string>
 
 #include "stb_image.h"
 
@@ -29,6 +31,7 @@ void framebufferSizeCallback(GLFWwindow* window, int width, int height);
 void mouseCallback(GLFWwindow* window, double xpos, double ypos);
 void scrollCallback(GLFWwindow* window, double xoffset, double yoffset);
 void processInput(GLFWwindow* window);
+unsigned int loadCubemap(const std::vector<std::string>& faces);
 
 // settings
 const unsigned int SCR_WIDTH = 1280;
@@ -41,7 +44,7 @@ float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
 
 // timing
-float deltaTime = 0.0f;	// time between current frame and last frame
+float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 
 // world space positions of our cubes
@@ -58,64 +61,79 @@ static const glm::vec3 cube_positions[] = {
 		glm::vec3(-2.6f,  2.0f, -3.0f)
 };
 
+// lights
+float ambient_scale = 0.05f;
+glm::vec4 light_color(1.0f);
+LightBlock light_block = {
+	.lights = {
+		// point light
+		{
+			.dir = glm::vec4(0.0f),
+			.pos = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f),
+			.ambient = light_color * ambient_scale,
+			.diffuse = light_color,
+			.specular = light_color,
+			.inner_angle_cosine = glm::cos(std::numbers::pi),
+			.outer_angle_cosine = glm::cos(std::numbers::pi),
+			.constant = 1.0f,
+			.linear = 0.09f,
+			.quadratic = 0.032f,
+		},
+		//spotlight
+		{
+			.dir = glm::vec4(glm::normalize(camera.getFront()), 0.0f),
+			.pos = glm::vec4(camera.getPosition(), 1.0f),
+			.ambient = glm::vec4(0.0f),//light_color * ambient_scale,
+			.diffuse = glm::vec4(0.0f),//light_color,
+			.specular = glm::vec4(0.0f),//light_color,
+			.inner_angle_cosine = glm::cos(glm::radians(15.0f)),
+			.outer_angle_cosine = glm::cos(glm::radians(25.0f)),
+			.constant = 1.0f,
+			.linear = 0.09f,
+			.quadratic = 0.032f,
+		}
+	},
+	// direction light
+	.directional_lights = {{
+		.dir = glm::vec4(1.0f, 0.0f, 0.0f, 0.0f),
+		.ambient = light_color * ambient_scale,
+		.diffuse = light_color,
+		.specular = light_color,
+	}},
+};
+
 
 int main()
 {
 	GLFWwindow* window = init();
 	if (!window) return -1;
 
+	Shader light_shader("./glsl/light.vert", "./glsl/light.frag", "", "./glsl/include/shader_macros.h");
+	Shader skybox_shader("./glsl/skybox.vert", "./glsl/skybox.frag");
 	Shader default_shader("./glsl/default.vert", "./glsl/default.frag", "", "./glsl/include/shader_macros.h");
 	default_shader.activate();
 	default_shader.setFloat("material.shininess", std::pow(2, 6));
 
-	Shader light_shader("./glsl/light.vert", "./glsl/light.frag", "", "./glsl/include/shader_macros.h");
-	light_shader.activate();
+	unsigned int skybox = loadCubemap(
+		std::vector<std::string>({
+			"./assets/skybox/right.jpg",
+			"./assets/skybox/left.jpg",
+			"./assets/skybox/top.jpg",
+			"./assets/skybox/bottom.jpg",
+			"./assets/skybox/front.jpg",
+			"./assets/skybox/back.jpg"
+		})
+	);
+	skybox_shader.activate();
+	skybox_shader.setInt("skybox", 0);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, skybox);
 
-	float ambient_scale = 0.05f;
-	glm::vec4 light_color(1.0f);
-	glm::vec4 zero(0.0f);
-	LightBlock light_block = {
-		.lights = {
-			// point light
-			{
-				.dir = glm::vec4(0.0f),
-				.pos = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f),
-				.ambient = light_color * ambient_scale,
-				.diffuse = light_color,
-				.specular = light_color,
-				.inner_angle_cosine = glm::cos(std::numbers::pi),
-				.outer_angle_cosine = glm::cos(std::numbers::pi),
-				.constant = 1.0f,
-				.linear = 0.09f,
-				.quadratic = 0.032f,
-			},
-			//spotlight
-			{
-				.dir = glm::vec4(glm::normalize(camera.getFront()), 0.0f),
-				.pos = glm::vec4(camera.getPosition(), 1.0f),
-				.ambient = zero,//light_color * ambient_scale,
-				.diffuse = zero,//light_color,
-				.specular = zero,//light_color,
-				.inner_angle_cosine = glm::cos(glm::radians(15.0f)),
-				.outer_angle_cosine = glm::cos(glm::radians(25.0f)),
-				.constant = 1.0f,
-				.linear = 0.09f,
-				.quadratic = 0.032f,
-			}
-		},
-		// direction light
-		.directional_lights = {{
-			.dir = glm::vec4(1.0f, 0.0f, 0.0f, 0.0f),
-			.ambient = light_color * ambient_scale,
-			.diffuse = light_color,
-			.specular = light_color,
-		}},
-	};
 
 	auto start_time = std::chrono::high_resolution_clock::now();
-	Model grass("./assets/grass.obj");
-	Model light_cube("./assets/cube.obj");
-	Model backpack("./assets/backpack.obj");
+	Model grass("./assets/other_3d/grass.obj");
+	Model cube("./assets/other_3d/cube.obj");
+	Model backpack("./assets/backpack/backpack.obj");
 	auto end_time = std::chrono::high_resolution_clock::now();
 	std::cout << "Loaded models in " << std::chrono::duration_cast<std::chrono::seconds>(end_time - start_time).count() << " seconds\n";
 
@@ -160,6 +178,16 @@ int main()
 		glm::mat4 projection = glm::perspective(glm::radians(camera.getZoom()), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
 		glm::mat4 view = camera.getViewMatrix();
 
+		// skybox
+		glDepthMask(GL_FALSE);
+		glDisable(GL_CULL_FACE);
+		skybox_shader.activate();
+		skybox_shader.setMat4("view", glm::mat4(glm::mat3(view)));
+		skybox_shader.setMat4("projection", projection);
+		cube.Draw(skybox_shader);
+		glDepthMask(GL_TRUE);
+		glEnable(GL_CULL_FACE);
+
 		// lights
 		// -------------------------------------------
 		light_shader.activate();
@@ -185,7 +213,7 @@ int main()
 			model = glm::scale(model, glm::vec3(0.2f));
 
 			light_shader.setMat4("model", model);
-			light_cube.Draw(light_shader);
+			cube.Draw(light_shader);
 		}
 
 		// directional lights
@@ -204,7 +232,7 @@ int main()
 			model = glm::scale(model, glm::vec3(10.0f));
 
 			light_shader.setMat4("model", model);
-			light_cube.Draw(light_shader);
+			cube.Draw(light_shader);
 		}
 
 		// non-lights
@@ -224,7 +252,7 @@ int main()
 			default_shader.setMat4("model", model);
 			default_shader.setMat3("normal_mat", glm::transpose(glm::inverse(glm::mat3(view * model))));
 
-			backpack.Draw(default_shader);
+			grass.Draw(default_shader);
 		}
 
 		// glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
@@ -325,4 +353,36 @@ void mouseCallback(GLFWwindow* window, double xpos, double ypos)
 void scrollCallback(GLFWwindow* window, double xoffset, double yoffset)
 {
 	camera.processZoom(yoffset);
+}
+
+unsigned int loadCubemap(const std::vector<std::string>& faces)
+{
+    unsigned int textureID;
+    glGenTextures(1, &textureID);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
+
+    int width, height, nrChannels;
+    for (unsigned int i = 0; i < faces.size(); i++)
+    {
+        unsigned char *data = stbi_load(faces[i].c_str(), &width, &height, &nrChannels, 0);
+        if (data)
+        {
+            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 
+                         0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data
+            );
+            stbi_image_free(data);
+        }
+        else
+        {
+            std::cout << "Cubemap tex failed to load at path: " << faces[i] << std::endl;
+            stbi_image_free(data);
+        }
+    }
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+    return textureID;
 }

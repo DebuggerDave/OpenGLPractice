@@ -27,7 +27,6 @@ public:
 
 	unsigned int getId() const;
 	void activate() const;
-	void deactivate() const;
 	// utility uniform functions
 	// ------------------------------------------------------------------------
 	void setBool(const std::string &name, bool value) const;

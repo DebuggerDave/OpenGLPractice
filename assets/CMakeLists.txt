@@ -14,35 +14,43 @@ function(COPY_TO_BINARY DATA DEPS)
 endfunction()
 
 set(3D_OBJECTS
-	"${CMAKE_CURRENT_SOURCE_DIR}/cube.obj"
-	"${CMAKE_CURRENT_SOURCE_DIR}/grass.obj"
-	"${CMAKE_CURRENT_SOURCE_DIR}/grass.mtl"
-	"${CMAKE_CURRENT_SOURCE_DIR}/backpack.obj"
-	"${CMAKE_CURRENT_SOURCE_DIR}/backpack.mtl"
+	"${CMAKE_CURRENT_SOURCE_DIR}/other_3d/cube.obj"
+	"${CMAKE_CURRENT_SOURCE_DIR}/other_3d/grass.obj"
+	"${CMAKE_CURRENT_SOURCE_DIR}/other_3d/grass.mtl"
+	"${CMAKE_CURRENT_SOURCE_DIR}/backpack/backpack.obj"
+	"${CMAKE_CURRENT_SOURCE_DIR}/backpack/backpack.mtl"
 )
 
 set(GENERATED_SPRITES
-	"${CMAKE_CURRENT_SOURCE_DIR}/grass_top.png"
-	"${CMAKE_CURRENT_SOURCE_DIR}/grass_side.png"
-	"${CMAKE_CURRENT_SOURCE_DIR}/grass_bottom.png"
-	"${CMAKE_CURRENT_SOURCE_DIR}/grass_top_specular.png"
-	"${CMAKE_CURRENT_SOURCE_DIR}/grass_side_specular.png"
-	"${CMAKE_CURRENT_SOURCE_DIR}/grass_bottom_specular.png"
-	"${CMAKE_CURRENT_SOURCE_DIR}/cobblestone_top.png"
-	"${CMAKE_CURRENT_SOURCE_DIR}/cobblestone_side.png"
-	"${CMAKE_CURRENT_SOURCE_DIR}/cobblestone_bottom.png"
-	"${CMAKE_CURRENT_SOURCE_DIR}/cobblestone_top_specular.png"
-	"${CMAKE_CURRENT_SOURCE_DIR}/cobblestone_side_specular.png"
-	"${CMAKE_CURRENT_SOURCE_DIR}/cobblestone_bottom_specular.png"
+	"${CMAKE_CURRENT_SOURCE_DIR}/generated/grass_top.png"
+	"${CMAKE_CURRENT_SOURCE_DIR}/generated/grass_side.png"
+	"${CMAKE_CURRENT_SOURCE_DIR}/generated/grass_bottom.png"
+	"${CMAKE_CURRENT_SOURCE_DIR}/generated/grass_top_specular.png"
+	"${CMAKE_CURRENT_SOURCE_DIR}/generated/grass_side_specular.png"
+	"${CMAKE_CURRENT_SOURCE_DIR}/generated/grass_bottom_specular.png"
+	"${CMAKE_CURRENT_SOURCE_DIR}/generated/cobblestone_top.png"
+	"${CMAKE_CURRENT_SOURCE_DIR}/generated/cobblestone_side.png"
+	"${CMAKE_CURRENT_SOURCE_DIR}/generated/cobblestone_bottom.png"
+	"${CMAKE_CURRENT_SOURCE_DIR}/generated/cobblestone_top_specular.png"
+	"${CMAKE_CURRENT_SOURCE_DIR}/generated/cobblestone_side_specular.png"
+	"${CMAKE_CURRENT_SOURCE_DIR}/generated/cobblestone_bottom_specular.png"
 )
 set(STATIC_SPRITES
-	"${CMAKE_CURRENT_SOURCE_DIR}/awesomeface.png"
-	"${CMAKE_CURRENT_SOURCE_DIR}/container.jpg"
-	"${CMAKE_CURRENT_SOURCE_DIR}/diffuse.jpg"
-	"${CMAKE_CURRENT_SOURCE_DIR}/ao.jpg"
-	"${CMAKE_CURRENT_SOURCE_DIR}/specular.jpg"
-	"${CMAKE_CURRENT_SOURCE_DIR}/normal.png"
-	"${CMAKE_CURRENT_SOURCE_DIR}/roughness.jpg"
+	"${CMAKE_CURRENT_SOURCE_DIR}/other/awesomeface.png"
+	"${CMAKE_CURRENT_SOURCE_DIR}/other/container.jpg"
+	"${CMAKE_CURRENT_SOURCE_DIR}/other/container2.png"
+	"${CMAKE_CURRENT_SOURCE_DIR}/other/container2_specular.png"
+	"${CMAKE_CURRENT_SOURCE_DIR}/backpack/diffuse.jpg"
+	"${CMAKE_CURRENT_SOURCE_DIR}/backpack/ao.jpg"
+	"${CMAKE_CURRENT_SOURCE_DIR}/backpack/specular.jpg"
+	"${CMAKE_CURRENT_SOURCE_DIR}/backpack/normal.png"
+	"${CMAKE_CURRENT_SOURCE_DIR}/backpack/roughness.jpg"
+	"${CMAKE_CURRENT_SOURCE_DIR}/skybox/front.jpg"
+	"${CMAKE_CURRENT_SOURCE_DIR}/skybox/back.jpg"
+	"${CMAKE_CURRENT_SOURCE_DIR}/skybox/left.jpg"
+	"${CMAKE_CURRENT_SOURCE_DIR}/skybox/right.jpg"
+	"${CMAKE_CURRENT_SOURCE_DIR}/skybox/top.jpg"
+	"${CMAKE_CURRENT_SOURCE_DIR}/skybox/bottom.jpg"
 )
 set(DEPS "")
 
@@ -53,7 +61,7 @@ if ("${ASEPRITE}" STREQUAL "")
 	message(WARNING "Aseprite executable not provided, cannot generate sprites")
 else()
 	add_custom_command(
-		COMMAND "${ASEPRITE}" -b "${CMAKE_CURRENT_SOURCE_DIR}/texture.aseprite" --split-slices --save-as {slice}.png
+		COMMAND "${ASEPRITE}" -b "${CMAKE_CURRENT_SOURCE_DIR}/texture.aseprite" --split-slices --save-as ./generated/{slice}.png
 		OUTPUT ${GENERATED_SPRITES}
 		DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/texture.aseprite"
 		WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"

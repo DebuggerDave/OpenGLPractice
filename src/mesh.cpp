@@ -3,6 +3,7 @@
 #include <vector>
 #include <string>
 #include <iostream>
+#include <algorithm>
 
 #include "utils.h"
 
@@ -53,7 +54,11 @@ Mesh& Mesh::operator=(Mesh&& other) noexcept
 void Mesh::Draw(const Shader& shader) const
 {
     // textures
-    for(unsigned int tex_nums[NumTexTypes]={0}, i=0; i < textures.size(); i++)
+    if (textures.size() > GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS) {
+        utils::err() << "unable to use all textures, exceeded max texture units" << utils::endl;
+    }
+    size_t num_tex = std::min((size_t)GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, textures.size());
+    for(unsigned int tex_nums[NumTexTypes]={0}, i=0; i < num_tex; i++)
     {
         TexType type = textures[i].type;
         std::string uniform;
@@ -63,12 +68,10 @@ void Mesh::Draw(const Shader& shader) const
         glActiveTexture(GL_TEXTURE0 + i);
         glBindTexture(GL_TEXTURE_2D, textures[i].id);
     }
-    glActiveTexture(GL_TEXTURE0);
 
     // draw
     glBindVertexArray(VAO);
     glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
-    glBindVertexArray(0);
 }
 
 std::string Mesh::texTypeToString(const TexType type) const {

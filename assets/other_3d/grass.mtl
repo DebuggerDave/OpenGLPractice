@@ -10,8 +10,8 @@ Ke 0.000000 0.000000 0.000000
 Ni 1.450000
 d 1.000000
 illum 2
-map_Kd grass_bottom.png
-map_Ks grass_bottom_specular.png
+map_Kd ../generated/grass_bottom.png
+map_Ks ../generated/grass_bottom_specular.png
 
 newmtl grass_side
 Ns 225.000000
@@ -22,8 +22,8 @@ Ke 0.000000 0.000000 0.000000
 Ni 1.450000
 d 1.000000
 illum 2
-map_Kd grass_side.png
-map_Ks grass_side_specular.png
+map_Kd ../generated/grass_side.png
+map_Ks ../generated/grass_side_specular.png
 
 newmtl grass_top
 Ns 323.999994
@@ -34,5 +34,5 @@ Ke 0.000000 0.000000 0.000000
 Ni 1.450000
 d 1.000000
 illum 2
-map_Kd grass_top.png
-map_Ks grass_top_specular.png
+map_Kd ../generated/grass_top.png
+map_Ks ../generated/grass_top_specular.png
