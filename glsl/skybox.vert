@@ -10,5 +10,7 @@ uniform mat4 projection;
 void main()
 {
 	tex_coords = a_pos;
-	gl_Position = projection * view * vec4(a_pos, 1.0f);
+	vec4 pos = projection * view * vec4(a_pos, 1.0f);
+	// make z the same as w so the vertex will have infinite depth after perspective division
+	gl_Position = pos.xyww;
 }

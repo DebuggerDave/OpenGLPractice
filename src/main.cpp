@@ -178,16 +178,6 @@ int main()
 		glm::mat4 projection = glm::perspective(glm::radians(camera.getZoom()), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
 		glm::mat4 view = camera.getViewMatrix();
 
-		// skybox
-		glDepthMask(GL_FALSE);
-		glDisable(GL_CULL_FACE);
-		skybox_shader.activate();
-		skybox_shader.setMat4("view", glm::mat4(glm::mat3(view)));
-		skybox_shader.setMat4("projection", projection);
-		cube.Draw(skybox_shader);
-		glDepthMask(GL_TRUE);
-		glEnable(GL_CULL_FACE);
-
 		// lights
 		// -------------------------------------------
 		light_shader.activate();
@@ -255,6 +245,14 @@ int main()
 			grass.Draw(default_shader);
 		}
 
+		// skybox
+		glDisable(GL_CULL_FACE);
+		skybox_shader.activate();
+		skybox_shader.setMat4("view", glm::mat4(glm::mat3(view)));
+		skybox_shader.setMat4("projection", projection);
+		cube.Draw(skybox_shader);
+		glEnable(GL_CULL_FACE);
+
 		// glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
 		glfwSwapBuffers(window);
 		glfwPollEvents();
@@ -295,6 +293,7 @@ GLFWwindow* init()
 
 	// Make sure fragment scene depth is calculated properly
 	glEnable(GL_DEPTH_TEST);
+	glDepthFunc(GL_LEQUAL);
 
 	return window;
 }
@@ -361,16 +360,24 @@ unsigned int loadCubemap(const std::vector<std::string>& faces)
     glGenTextures(1, &textureID);
     glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
 
-    int width, height, nrChannels;
+    int width, height, num_components;
     for (unsigned int i = 0; i < faces.size(); i++)
     {
-        unsigned char *data = stbi_load(faces[i].c_str(), &width, &height, &nrChannels, 0);
+
+        unsigned char *data = stbi_load(faces[i].c_str(), &width, &height, &num_components, 0);
         if (data)
         {
-            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 
-                         0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data
-            );
-            stbi_image_free(data);
+			GLenum format;
+			if (num_components == 1)
+				format = GL_RED;
+			else if (num_components == 3)
+				format = GL_RGB;
+			else if (num_components == 4)
+				format = GL_RGBA;
+
+			glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
+				0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
+			stbi_image_free(data);
         }
         else
         {
