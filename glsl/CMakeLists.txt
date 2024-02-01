@@ -1,4 +1,7 @@
 set(COPYABLE_SHADERS
+	"${CMAKE_CURRENT_SOURCE_DIR}/normal.frag"
+	"${CMAKE_CURRENT_SOURCE_DIR}/normal.vert"
+	"${CMAKE_CURRENT_SOURCE_DIR}/normal.geom"
 	"${CMAKE_CURRENT_SOURCE_DIR}/default.frag"
 	"${CMAKE_CURRENT_SOURCE_DIR}/default.vert"
 	"${CMAKE_CURRENT_SOURCE_DIR}/light.frag"

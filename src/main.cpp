@@ -111,6 +111,7 @@ int main()
 	Shader light_shader("./glsl/light.vert", "./glsl/light.frag", "", "./glsl/include/shader_macros.h");
 	Shader skybox_shader("./glsl/skybox.vert", "./glsl/skybox.frag");
 	Shader default_shader("./glsl/default.vert", "./glsl/default.frag", "", "./glsl/include/shader_macros.h");
+	Shader normal_shader("./glsl/normal.vert", "./glsl/normal.frag", "./glsl/normal.geom");
 	default_shader.activate();
 	default_shader.setFloat("material.shininess", std::pow(2, 6));
 
@@ -232,6 +233,10 @@ int main()
 		default_shader.setMat4("projection", projection);
 		default_shader.setMat3("light_normal_mat", glm::transpose(glm::inverse(glm::mat3(view))));
 
+		normal_shader.activate();
+		normal_shader.setMat4("view", view);
+		normal_shader.setMat4("projection", projection);
+
 		for (unsigned int i = 0; i < (sizeof(cube_positions)/sizeof(cube_positions[0])); i++)
 		{
 			// calculate the model matrix for each object and pass it to shader before drawing
@@ -239,10 +244,17 @@ int main()
 			model = glm::translate(model, cube_positions[i]);
 			float angle = 20.0f * i;
 			model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
-			default_shader.setMat4("model", model);
-			default_shader.setMat3("normal_mat", glm::transpose(glm::inverse(glm::mat3(view * model))));
+			glm::mat3 normal_mat = glm::transpose(glm::inverse(glm::mat3(view * model)));
 
+			default_shader.activate();
+			default_shader.setMat4("model", model);
+			default_shader.setMat3("normal_mat", normal_mat);
 			grass.Draw(default_shader);
+
+			normal_shader.activate();
+			normal_shader.setMat4("model", model);
+			normal_shader.setMat3("normal_mat",  normal_mat);
+			grass.Draw(normal_shader);
 		}
 
 		// skybox
@@ -294,6 +306,7 @@ GLFWwindow* init()
 	// Make sure fragment scene depth is calculated properly
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LEQUAL);
+	glEnable(GL_CULL_FACE);
 
 	return window;
 }
