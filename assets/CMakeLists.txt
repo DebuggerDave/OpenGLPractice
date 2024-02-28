@@ -14,6 +14,8 @@ function(COPY_TO_BINARY DATA DEPS)
 endfunction()
 
 set(3D_OBJECTS
+	"${CMAKE_CURRENT_SOURCE_DIR}/other_3d/floor.obj"
+	"${CMAKE_CURRENT_SOURCE_DIR}/other_3d/floor.mtl"
 	"${CMAKE_CURRENT_SOURCE_DIR}/other_3d/cube.obj"
 	"${CMAKE_CURRENT_SOURCE_DIR}/other_3d/grass.obj"
 	"${CMAKE_CURRENT_SOURCE_DIR}/other_3d/grass.mtl"
@@ -36,6 +38,7 @@ set(GENERATED_SPRITES
 	"${CMAKE_CURRENT_SOURCE_DIR}/generated/cobblestone_bottom_specular.png"
 )
 set(STATIC_SPRITES
+	"${CMAKE_CURRENT_SOURCE_DIR}/other/wood.png"
 	"${CMAKE_CURRENT_SOURCE_DIR}/other/awesomeface.png"
 	"${CMAKE_CURRENT_SOURCE_DIR}/other/container.jpg"
 	"${CMAKE_CURRENT_SOURCE_DIR}/other/container2.png"

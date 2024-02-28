@@ -38,7 +38,7 @@ const unsigned int SCR_WIDTH = 1280;
 const unsigned int SCR_HEIGHT = 720;
 
 // camera
-Camera camera(glm::vec3(0.0f, 0.0f, 0.0f));
+Camera camera(glm::vec3(0.0f, 5.0f, 0.0f));
 float lastX = SCR_WIDTH / 2.0f;
 float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
@@ -49,15 +49,10 @@ float lastFrame = 0.0f;
 
 // world space positions of our cubes
 static const glm::vec3 cube_positions[] = {
-		glm::vec3( 0.0f,  0.0f,  -6.0f),
+		glm::vec3( 0.0f,  5.0f,  -6.0f),
 		glm::vec3( 4.0f,  10.0f, -30.0f),
-		glm::vec3(-3.0f, -4.4f, -5.0f),
-		glm::vec3(-7.6f, -4.0f, -24.6f),
-		glm::vec3( 4.8f, -0.8f, -7.0f),
 		glm::vec3(-3.4f,  6.0f, -15.0f),
-		glm::vec3( 2.6f, -4.0f, -5.0f),
 		glm::vec3( 3.0f,  4.0f, -5.0f),
-		glm::vec3( 3.0f,  0.4f, -3.0f),
 		glm::vec3(-2.6f,  2.0f, -3.0f)
 };
 
@@ -69,7 +64,7 @@ LightBlock light_block = {
 		// point light
 		{
 			.dir = glm::vec4(0.0f),
-			.pos = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f),
+			.pos = glm::vec4(0.0f, 1.0f, 0.0f, 1.0f),
 			.ambient = light_color * ambient_scale,
 			.diffuse = light_color,
 			.specular = light_color,
@@ -95,7 +90,7 @@ LightBlock light_block = {
 	},
 	// direction light
 	.directional_lights = {{
-		.dir = glm::vec4(1.0f, 0.0f, 0.0f, 0.0f),
+		.dir = glm::vec4(glm::cos(glm::radians(45.0f)), -glm::cos(glm::radians(45.0f)), 0.0f, 0.0f),
 		.ambient = light_color * ambient_scale,
 		.diffuse = light_color,
 		.specular = light_color,
@@ -132,6 +127,7 @@ int main()
 
 
 	auto start_time = std::chrono::high_resolution_clock::now();
+	Model floor("./assets/other_3d/floor.obj");
 	Model grass("./assets/other_3d/grass.obj");
 	Model cube("./assets/other_3d/cube.obj");
 	Model backpack("./assets/backpack/backpack.obj");
@@ -237,6 +233,15 @@ int main()
 		normal_shader.setMat4("view", view);
 		normal_shader.setMat4("projection", projection);
 
+		// floor
+		glm::mat4 model = glm::mat4(1.0f);
+		model = glm::scale(model, glm::vec3(10.0f, 10.0f, 10.0f));
+		glm::mat3 normal_mat = glm::transpose(glm::inverse(glm::mat3(view * model)));
+		default_shader.activate();
+		default_shader.setMat4("model", model);
+		default_shader.setMat3("normal_mat", normal_mat);
+		floor.Draw(default_shader);
+
 		for (unsigned int i = 0; i < (sizeof(cube_positions)/sizeof(cube_positions[0])); i++)
 		{
 			// calculate the model matrix for each object and pass it to shader before drawing
@@ -258,12 +263,12 @@ int main()
 		}
 
 		// skybox
-		glDisable(GL_CULL_FACE);
+		glCullFace(GL_FRONT);
 		skybox_shader.activate();
 		skybox_shader.setMat4("view", glm::mat4(glm::mat3(view)));
 		skybox_shader.setMat4("projection", projection);
 		cube.Draw(skybox_shader);
-		glEnable(GL_CULL_FACE);
+		glCullFace(GL_BACK);
 
 		// glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
 		glfwSwapBuffers(window);
