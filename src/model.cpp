@@ -160,7 +160,7 @@ std::vector<Mesh::Texture> Model::loadMaterialTextures(const aiMaterial* mat, co
 
         // if we don't have the texture in our map, attempt an insertion
         if (unsigned int tex_id;
-            tex_succ && !path_texture_map.contains(path) && texFromFile(path, tex_id)) {
+            tex_succ && !path_texture_map.contains(path) && texFromFile(path, tex_id, type)) {
             path_texture_map[path] = Mesh::Texture{
                 .id=tex_id,
                 .type=type
@@ -176,17 +176,24 @@ std::vector<Mesh::Texture> Model::loadMaterialTextures(const aiMaterial* mat, co
     return textures;
 }
 
-void Model::createTex(unsigned int& tex_id, const unsigned char* data, const int width, const int height, const int num_components) {
+void Model::createTex(unsigned int& tex_id, const unsigned char* data, const int width, const int height, const int num_components, const Mesh::TexType type) {
     glGenTextures(1, &tex_id);
     static const unsigned int pixel_art_threshold = 64;
 
     GLenum format;
-    if (num_components == 1)
+    GLenum internal_format;
+    if (num_components == 1) {
         format = GL_RED;
-    else if (num_components == 3)
+        internal_format = GL_RED;
+    }
+    else if (num_components == 3) {
         format = GL_RGB;
-    else if (num_components == 4)
+        internal_format = (type == Mesh::TexType::Diffuse) ? GL_SRGB : GL_RGB;
+    }
+    else if (num_components == 4) {
         format = GL_RGBA;
+        internal_format = (type == Mesh::TexType::Diffuse) ? GL_SRGB_ALPHA : GL_RGBA;
+    }
 
     unsigned short tex_min_filter = 0, tex_mag_filter = 0;
     if ((width <= pixel_art_threshold) && (height <= pixel_art_threshold)) {
@@ -198,7 +205,7 @@ void Model::createTex(unsigned int& tex_id, const unsigned char* data, const int
     }
 
     glBindTexture(GL_TEXTURE_2D, tex_id);
-    glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
+    glTexImage2D(GL_TEXTURE_2D, 0, internal_format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
     glGenerateMipmap(GL_TEXTURE_2D);
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -207,7 +214,7 @@ void Model::createTex(unsigned int& tex_id, const unsigned char* data, const int
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, tex_mag_filter);
 }
 
-bool Model::texFromFile(const std::string& filename, unsigned int& tex_id)
+bool Model::texFromFile(const std::string& filename, unsigned int& tex_id, const Mesh::TexType type)
 {
     std::string file_path = directory + '/' + filename;
     int width, height, num_components;
@@ -217,7 +224,7 @@ bool Model::texFromFile(const std::string& filename, unsigned int& tex_id)
     unsigned char* data = stbi_load(file_path.c_str(), &width, &height, &num_components, 0);
     if (data)
     {
-        createTex(tex_id, data, width, height, num_components);
+        createTex(tex_id, data, width, height, num_components, type);
         succ = true;
     }
     else

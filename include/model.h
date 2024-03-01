@@ -41,9 +41,9 @@ class Model
         // load textures from material into memory
         std::vector<Mesh::Texture> loadMaterialTextures(const aiMaterial* mat, const aiTextureType ai_type, const Mesh::TexType type);
         // create texture from image data
-        void createTex(unsigned int& tex_id, const unsigned char* data, const int width, const int height, const int num_components);
+        void createTex(unsigned int& tex_id, const unsigned char* data, const int width, const int height, const int num_component, const Mesh::TexType types);
         // create texture from file path
-        bool texFromFile(const std::string& filename, unsigned int& tex_id);
+        bool texFromFile(const std::string& filename, unsigned int& tex_id, const Mesh::TexType type);
 };
 
 #endif

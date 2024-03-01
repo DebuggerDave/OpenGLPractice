@@ -25,7 +25,7 @@ vec4 calc_light(vec3 normal, vec3 light_pos, vec3 frag_pos, float shininess, vec
 vec4 better_normalize(vec4 in_vec);
 vec3 better_normalize(vec3 in_vec);
 bool fuzzy_equal(float one, float two);
-void unfuzzy(inout float val);
+float unfuzzy(float val);
 float better_dot(vec3 one, vec3 two);
 
 const float eps = 0.00001;
@@ -101,30 +101,12 @@ vec4 calc_light(vec4 normal, vec4 light_to_frag_dir, vec4 frag_pos, float shinin
 }
 
 vec4 calc_light(vec3 normal, vec3 light_to_frag_dir, vec3 frag_pos, float shininess, vec4 diffuse_tex, vec4 specular_tex, vec4 ambient_light, vec4 diffuse_light, vec4 specular_light) {
-	vec3 adjusted_norm = normal;
-
-	// double sided polys
-	{
-		// draw backside correctly
-		if (dot(normal, light_to_frag_dir) > 0) {
-			adjusted_norm = -normal;
-		}
-
-		// if the light is on the backside, don't draw with it
-		if ((dot(light_to_frag_dir, adjusted_norm) < 0) && (dot(frag_pos, adjusted_norm) > 0)) {
-			return vec4(0.0);
-		}
-	}
-
 	vec3 view_light_half_point = -better_normalize(light_to_frag_dir + frag_pos);
-	float diffuse_scale = max(better_dot(adjusted_norm, -light_to_frag_dir), 0.0);
-	float specular_alignment = max(better_dot(view_light_half_point, adjusted_norm), 0.0);
+	float diffuse_scale = max(better_dot(normal, -light_to_frag_dir), 0.0);
+	float specular_alignment = max(better_dot(view_light_half_point, normal), 0.0);
 	float specular_scale = pow(specular_alignment, shininess);
-
-	// if we don't account for double sided polys, make sure specular only affects surfaces facing the light
-	if (diffuse_scale <= 0) {
-		specular_scale = 0;
-	}
+	// make sure specular only affects surfaces with nonzero diffuse
+	specular_scale = specular_scale * ceil(diffuse_scale);
 
 	vec4 ambient = diffuse_tex * ambient_light;
 	vec4 diffuse = diffuse_tex * diffuse_scale * diffuse_light;
@@ -151,14 +133,15 @@ bool fuzzy_equal(float one, float two) {
 	return (abs(one - two) < eps);
 }
 
-void unfuzzy(inout float val) {
+float unfuzzy(float val) {
 	if (fuzzy_equal(val, 0.0)) {
-		val = 0.0;
+		return 0.0;
+	} else {
+		return val;
 	}
 }
 
 float better_dot(vec3 one, vec3 two) {
 	float res = dot(one, two);
-	unfuzzy(res);
-	return res;
+	return unfuzzy(res);
 }

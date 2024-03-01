@@ -57,7 +57,7 @@ static const glm::vec3 cube_positions[] = {
 };
 
 // lights
-float ambient_scale = 0.05f;
+float ambient_scale = 0.2f;
 glm::vec4 light_color(1.0f);
 LightBlock light_block = {
 	.lights = {
@@ -71,8 +71,8 @@ LightBlock light_block = {
 			.inner_angle_cosine = glm::cos(std::numbers::pi),
 			.outer_angle_cosine = glm::cos(std::numbers::pi),
 			.constant = 1.0f,
-			.linear = 0.09f,
-			.quadratic = 0.032f,
+			.linear = 0.0f,
+			.quadratic = 0.5f,
 		},
 		//spotlight
 		{
@@ -84,13 +84,13 @@ LightBlock light_block = {
 			.inner_angle_cosine = glm::cos(glm::radians(15.0f)),
 			.outer_angle_cosine = glm::cos(glm::radians(25.0f)),
 			.constant = 1.0f,
-			.linear = 0.09f,
-			.quadratic = 0.032f,
+			.linear = 0.0f,
+			.quadratic = 0.5f,
 		}
 	},
 	// direction light
 	.directional_lights = {{
-		.dir = glm::vec4(glm::cos(glm::radians(45.0f)), -glm::cos(glm::radians(45.0f)), 0.0f, 0.0f),
+		.dir = glm::normalize(glm::vec4(1, -1, 0.0f, 0.0f)),
 		.ambient = light_color * ambient_scale,
 		.diffuse = light_color,
 		.specular = light_color,
@@ -108,7 +108,7 @@ int main()
 	Shader default_shader("./glsl/default.vert", "./glsl/default.frag", "", "./glsl/include/shader_macros.h");
 	Shader normal_shader("./glsl/normal.vert", "./glsl/normal.frag", "./glsl/normal.geom");
 	default_shader.activate();
-	default_shader.setFloat("material.shininess", std::pow(2, 6));
+	default_shader.setFloat("material.shininess", std::pow(2, 4));
 
 	unsigned int skybox = loadCubemap(
 		std::vector<std::string>({
@@ -242,10 +242,20 @@ int main()
 		default_shader.setMat3("normal_mat", normal_mat);
 		floor.Draw(default_shader);
 
+		model = glm::mat4(1.0f);
+		model = glm::rotate(model, glm::radians(180.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+		model = glm::translate(model, glm::vec3(0.0f, 0.1, 0.0f));
+		model = glm::scale(model, glm::vec3(10.0f, 10.0f, 10.0f));
+		normal_mat = glm::transpose(glm::inverse(glm::mat3(view * model)));
+		default_shader.setMat4("model", model);
+		default_shader.setMat3("normal_mat", normal_mat);
+		floor.Draw(default_shader);
+
 		for (unsigned int i = 0; i < (sizeof(cube_positions)/sizeof(cube_positions[0])); i++)
 		{
 			// calculate the model matrix for each object and pass it to shader before drawing
 			glm::mat4 model = glm::mat4(1.0f); // make sure to initialize matrix to identity matrix first
+			model = glm::scale(model, glm::vec3(0.5f));
 			model = glm::translate(model, cube_positions[i]);
 			float angle = 20.0f * i;
 			model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
@@ -312,6 +322,7 @@ GLFWwindow* init()
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LEQUAL);
 	glEnable(GL_CULL_FACE);
+	glEnable(GL_FRAMEBUFFER_SRGB);
 
 	return window;
 }
