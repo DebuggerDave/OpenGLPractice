@@ -56,10 +56,10 @@ void Model::processNodeRecursion(const aiNode* node, const aiScene* scene, unsig
     }
 
     // process meshes
-    for(unsigned int i = 0; i < node->mNumMeshes; i++)
+    for(unsigned int i = 0; i < node->mNumMeshes; i++, mesh_num++)
     {
         aiMesh *mesh = scene->mMeshes[node->mMeshes[i]]; 
-        meshes[mesh_num++] = processMesh(mesh, scene);
+        meshes[mesh_num] = processMesh(mesh, scene);
     }
 }
 

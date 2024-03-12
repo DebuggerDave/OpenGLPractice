@@ -74,7 +74,8 @@ void Mesh::Draw(const Shader& shader) const
     glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
 }
 
-std::string Mesh::texTypeToString(const TexType type) const {
+std::string Mesh::texTypeToString(const TexType type) const
+{
     if (type == Diffuse) {
         return "diffuse";
     } else if (type == Specular) {

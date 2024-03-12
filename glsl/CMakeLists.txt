@@ -8,6 +8,8 @@ set(COPYABLE_SHADERS
 	"${CMAKE_CURRENT_SOURCE_DIR}/light.vert"
 	"${CMAKE_CURRENT_SOURCE_DIR}/skybox.frag"
 	"${CMAKE_CURRENT_SOURCE_DIR}/skybox.vert"
+	"${CMAKE_CURRENT_SOURCE_DIR}/shadow.frag"
+	"${CMAKE_CURRENT_SOURCE_DIR}/shadow.vert"
 	"${CMAKE_CURRENT_SOURCE_DIR}/include/shader_macros.h"
 )
 set(DEPS "")
