@@ -10,12 +10,8 @@ add_subdirectory(glfw)
 target_link_libraries(opengl_practice PRIVATE glfw)
 
 # glad
-target_sources(opengl_practice PRIVATE
-                "${CMAKE_CURRENT_SOURCE_DIR}/glad/src/glad.c"
-                )
-target_include_directories(opengl_practice PRIVATE
-                            "${CMAKE_CURRENT_SOURCE_DIR}/glad/include"
-                            )
+target_sources(opengl_practice PRIVATE ./glad/src/glad.c)
+target_include_directories(opengl_practice PRIVATE ./glad/include)
 
 # glm
 add_subdirectory(glm)
@@ -23,8 +19,7 @@ set(GLM_TEST_ENABLE OFF CACHE BOOL "" FORCE)
 target_link_libraries(opengl_practice PRIVATE glm::glm)
 
 # stb
-target_include_directories(opengl_practice PRIVATE
-                            ${CMAKE_CURRENT_SOURCE_DIR}/stb)
+target_include_directories(opengl_practice PRIVATE ./stb)
 
 # assimp
 set(BUILD_SHARED_LIBS OFF)
@@ -38,3 +33,24 @@ set(ASSIMP_BUILD_ASSIMP_VIEW OFF)
 set(ASSIMP_IGNORE_GIT_HASH ON)
 add_subdirectory(assimp)
 target_link_libraries(opengl_practice PRIVATE assimp)
+
+# imgui
+# global files
+target_sources(opengl_practice PUBLIC
+                ./imgui/imgui_demo.cpp
+                ./imgui/imgui_draw.cpp
+                ./imgui/imgui_tables.cpp
+                ./imgui/imgui_widgets.cpp
+                ./imgui/imgui.cpp
+                )
+target_include_directories(opengl_practice PRIVATE ./imgui)
+# graphics api specific
+target_sources(opengl_practice PUBLIC
+                ./imgui/backends/imgui_impl_opengl3.cpp
+                ./imgui/backends/imgui_impl_glfw.cpp
+                ./imgui/backends/imgui_impl_opengl2.cpp
+                )
+target_include_directories(opengl_practice PRIVATE ./imgui/backends)
+# std specific
+target_sources(opengl_practice PUBLIC ./imgui/misc/cpp/imgui_stdlib.cpp)
+target_include_directories(opengl_practice PRIVATE ./imgui/misc/cpp)
