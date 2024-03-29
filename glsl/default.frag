@@ -3,6 +3,7 @@
 out vec4 frag_color;
 
 in vec2 tex_coord;
+in vec4 light_space_pos;
 in vec4 norm;
 in vec4 frag_pos;
 
@@ -12,6 +13,8 @@ struct Material {
 	sampler2D texture_normal0;
 	float shininess;
 };
+
+uniform sampler2D depth_map;
 
 uniform Material material;
 uniform mat3 light_normal_mat;
@@ -106,13 +109,17 @@ vec4 calc_light(vec3 normal, vec3 light_to_frag_dir, vec3 frag_pos, float shinin
 	float specular_alignment = max(better_dot(view_light_half_point, normal), 0.0);
 	float specular_scale = pow(specular_alignment, shininess);
 	// make sure specular only affects surfaces with nonzero diffuse
-	specular_scale = specular_scale * ceil(diffuse_scale);
+	specular_scale *= ceil(diffuse_scale);
+
+	float closest_object_depth = texture(depth_map, light_space_pos.xy).r;
+	float current_depth = light_space_pos.z;
+	bool shadowed = (current_depth > closest_object_depth) && (current_depth <= 1);
 
 	vec4 ambient = diffuse_tex * ambient_light;
 	vec4 diffuse = diffuse_tex * diffuse_scale * diffuse_light;
 	vec4 specular = specular_tex * specular_scale * specular_light;
 
-	return ambient + diffuse + specular;
+	return ambient + ((diffuse + specular) * int(!shadowed));
 }
 
 vec4 better_normalize(vec4 in_vec) {
