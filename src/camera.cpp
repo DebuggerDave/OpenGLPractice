@@ -1,8 +1,8 @@
 #include "camera.h"
 
 Camera::Camera(const glm::vec3& position, const float yaw, const float pitch) :
-	movement_speed(default_speed),
-	mouse_sensitivity(default_sensitivity),
+	mouse_sensitivity(default_mouse_sensitivity),
+	joystick_sensitivity(default_joystick_sensitivity),
 	zoom(default_zoom),
 	position(position),
 	yaw(yaw),
@@ -12,8 +12,8 @@ Camera::Camera(const glm::vec3& position, const float yaw, const float pitch) :
 }
 
 Camera::Camera(const float x, const float y, const float z, const float yaw, const float pitch) :
-	movement_speed(default_speed),
-	mouse_sensitivity(default_sensitivity),
+	mouse_sensitivity(default_mouse_sensitivity),
+	joystick_sensitivity(default_joystick_sensitivity),
 	zoom(default_zoom),
 	position(glm::vec3(x, y, z)),
 	yaw(yaw),
@@ -27,9 +27,8 @@ glm::mat4 Camera::getViewMatrix() const
 	return glm::lookAt(position, position + front, up);
 }
 
-void Camera::processMovement(const Movement direction, const float delta_time)
+void Camera::processMovement(const Movement direction, const float velocity)
 {
-	float velocity = movement_speed * delta_time;
 	if (direction == moveForward)
 		position += front * velocity;
 	if (direction == moveBackward)
@@ -44,22 +43,14 @@ void Camera::processMovement(const Movement direction, const float delta_time)
 		position -= up * velocity;
 }
 
-void Camera::processRotation(const float x_offset, const float y_offset, const GLboolean constrain_pitch)
+void Camera::processMouseRotation(const float x_offset, const float y_offset, const GLboolean constrain_pitch)
 {
-	yaw += x_offset * mouse_sensitivity;
-	pitch += y_offset * mouse_sensitivity;
+	processRotation(x_offset, y_offset, constrain_pitch, mouse_sensitivity);
+}
 
-	// Make sure that when pitch is out of bounds, screen doesn't get flipped
-	if (constrain_pitch)
-	{
-		if (pitch > 89.0f)
-			pitch = 89.0f;
-		if (pitch < -89.0f)
-			pitch = -89.0f;
-	}
-
-	// Update Front, Right and Up Vectors using the updated Euler angles
-	updateCameraVectors();
+void Camera::processJoystickRotation(const float x_offset, const float y_offset, const GLboolean constrain_pitch)
+{
+	processRotation(x_offset, y_offset, constrain_pitch, joystick_sensitivity);
 }
 
 void Camera::processZoom(float y_offset)
@@ -98,4 +89,22 @@ void Camera::updateCameraVectors()
 	// Also re-calculate the Right and Up vector
 	right = glm::normalize(glm::cross(front, world_up));
 	up = glm::normalize(glm::cross(right, front));
+}
+
+void Camera::processRotation(const float x_offset, const float y_offset, const GLboolean constrain_pitch, const float sensitivity)
+{
+	yaw += x_offset * sensitivity;
+	pitch += y_offset * sensitivity;
+
+	// Make sure that when pitch is out of bounds, screen doesn't get flipped
+	if (constrain_pitch)
+	{
+		if (pitch > 89.0f)
+			pitch = 89.0f;
+		if (pitch < -89.0f)
+			pitch = -89.0f;
+	}
+
+	// Update Front, Right and Up Vectors using the updated Euler angles
+	updateCameraVectors();
 }

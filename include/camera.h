@@ -25,22 +25,24 @@ public:
 
 	// Returns the view matrix calculated using Euler Angles and the LookAt Matrix
 	glm::mat4 getViewMatrix() const;
-	// move in direction indicated by direction param
+	// Move in direction indicated by direction param
 	void processMovement(const Movement direction, const float delta_time);
-	// Processes input received from a mouse input system. Expects the offset value in both the x and y direction.
-	void processRotation(const float x_offset, const float y_offset, const GLboolean constrain_pitch=true);
+	// Process rotation with mouse parameters
+	void processMouseRotation(const float x_offset, const float y_offset, const GLboolean constrain_pitch=true);
+	// Process rotation with joystick parameters
+	void processJoystickRotation(const float x_offset, const float y_offset, const GLboolean constrain_pitch=true);
 	// Processes input received from a mouse scroll-wheel event. Only requires input on the vertical wheel-axis
 	void processZoom(const float y_offset);
 
-	// getters
+	// Getters
 	glm::vec3 getPosition() const;
 	glm::vec3 getFront() const;
 	float getZoom() const;
 
 private:
 	// default values
-	inline static const float default_speed = 2.5f;
-	inline static const float default_sensitivity = 0.1f;
+	inline static const float default_mouse_sensitivity = 0.1f;
+	inline static const float default_joystick_sensitivity = 1.0f;
 	inline static const float default_zoom = 45.0f;
 	inline static const float default_pitch = 0.0f;
 	inline static const float default_yaw = -90.0f;
@@ -54,11 +56,13 @@ private:
 	float yaw;
 	float pitch;
 	// Camera options
-	float movement_speed;
 	float mouse_sensitivity;
+	float joystick_sensitivity;
 	float zoom;
 
 	// Calculates the front vector from the Camera's (updated) Euler Angles
 	void updateCameraVectors();
+	// Adjust yaw and pitch based on x and y movement
+	void processRotation(const float x_offset, const float y_offset, const GLboolean constrain_pitch, const float sensitivity);
 };
 #endif
