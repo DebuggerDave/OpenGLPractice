@@ -111,15 +111,25 @@ vec4 calc_light(vec3 normal, vec3 light_to_frag_dir, vec3 frag_pos, float shinin
 	// make sure specular only affects surfaces with nonzero diffuse
 	specular_scale *= ceil(diffuse_scale);
 
-	float closest_object_depth = texture(depth_map, light_space_pos.xy).r;
+	float average_shadow = 0.0;
+	vec2 texelSize = 1.0 / textureSize(depth_map, 0);
 	float current_depth = light_space_pos.z;
-	bool shadowed = (current_depth > closest_object_depth) && (current_depth <= 1);
+	// send values greater than or equal to 1.0 to 0.0
+	current_depth = mod(clamp(current_depth, 0.0, 1.0), 1.0);
+	// iterate over a 3x3 grid around the corresponding texel
+	for (int x = -1; x <= 1; ++x) {
+		for (int y = -1; y <= 1; ++y) {
+			float texel = texture(depth_map, light_space_pos.xy + vec2(x, y) * texelSize).r;
+			average_shadow += (current_depth > texel) ? 1.0 : 0.0;
+		}
+	}
+	average_shadow /= 9.0;
 
 	vec4 ambient = diffuse_tex * ambient_light;
 	vec4 diffuse = diffuse_tex * diffuse_scale * diffuse_light;
 	vec4 specular = specular_tex * specular_scale * specular_light;
 
-	return ambient + ((diffuse + specular) * int(!shadowed));
+	return ambient + ((diffuse + specular) * (1 - average_shadow));
 }
 
 vec4 better_normalize(vec4 in_vec) {

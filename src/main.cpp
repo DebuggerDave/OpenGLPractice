@@ -164,7 +164,7 @@ int main()
 	unsigned int depth_map;
 	glGenTextures(1, &depth_map);
 	glBindTexture(GL_TEXTURE_2D, depth_map);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT16, SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_SHORT, NULL);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
@@ -419,7 +419,7 @@ void processGamepadInput(GLFWwindow *window)
 			bool moved = false;
 			float velocity = BASE_SPEED * delta_time;
 			if (glfwGetGamepadState(i, &state)) {
-				is_sprinting = is_sprinting || state.buttons[GLFW_GAMEPAD_BUTTON_LEFT_THUMB];
+				is_sprinting |= state.buttons[GLFW_GAMEPAD_BUTTON_LEFT_THUMB];
 				if (is_sprinting)
 					velocity = MAX_SPEED * delta_time;
 
@@ -441,7 +441,7 @@ void processGamepadInput(GLFWwindow *window)
 				float right_y_offset = (abs(state.axes[GLFW_GAMEPAD_AXIS_RIGHT_Y]) < min_dead_zone) ? 0 : -state.axes[GLFW_GAMEPAD_AXIS_RIGHT_Y];
 				camera.processJoystickRotation(right_x_offset, right_y_offset);
 
-				is_sprinting = is_sprinting && moved;
+				is_sprinting &= moved;
 			}
 		}
 	}
@@ -596,6 +596,7 @@ void showImgui(bool* p_open)
     }
 
 	ImGui::SliderFloat3("shadow caster direction", glm::value_ptr(light_block.directional_lights[0].dir), -1.0f, 1.0f);
+	light_block.directional_lights[0].dir = glm::normalize(light_block.directional_lights[0].dir);
 
     ImGui::End();
 }
