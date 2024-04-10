@@ -487,15 +487,16 @@ void scrollCallback(GLFWwindow* window, double xoffset, double yoffset)
 
 void joystickCallback(int jid, int event)
 {
-		if ((event = GLFW_CONNECTED) && glfwJoystickIsGamepad(jid)) {
-			joystick_ids.emplace(jid);
-		} else {
-			joystick_ids.erase(jid);
-		}
+	if ((event = GLFW_CONNECTED) && glfwJoystickIsGamepad(jid)) {
+		joystick_ids.emplace(jid);
+	} else {
+		joystick_ids.erase(jid);
+	}
 }
 
 void findJoysticks()
 {
+	joystick_ids.clear();
 	for (int i=GLFW_JOYSTICK_1; i <= GLFW_JOYSTICK_LAST; i++) {
 		if (glfwJoystickIsGamepad(i)) {
 			joystick_ids.emplace();
