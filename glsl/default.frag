@@ -32,6 +32,7 @@ float unfuzzy(float val);
 float better_dot(vec3 one, vec3 two);
 
 const float eps = 0.00001;
+const bool average_shadows = true;
 
 void main()
 {
@@ -111,25 +112,30 @@ vec4 calc_light(vec3 normal, vec3 light_to_frag_dir, vec3 frag_pos, float shinin
 	// make sure specular only affects surfaces with nonzero diffuse
 	specular_scale *= ceil(diffuse_scale);
 
-	float average_shadow = 0.0;
+	float shadow_average = 0.0;
 	vec2 texelSize = 1.0 / textureSize(depth_map, 0);
 	float current_depth = light_space_pos.z;
 	// send values greater than or equal to 1.0 to 0.0
 	current_depth = mod(clamp(current_depth, 0.0, 1.0), 1.0);
 	// iterate over a 3x3 grid around the corresponding texel
-	for (int x = -1; x <= 1; ++x) {
-		for (int y = -1; y <= 1; ++y) {
-			float texel = texture(depth_map, light_space_pos.xy + vec2(x, y) * texelSize).r;
-			average_shadow += (current_depth > texel) ? 1.0 : 0.0;
+	if (average_shadows) {
+		for (int x = -1; x <= 1; ++x) {
+			for (int y = -1; y <= 1; ++y) {
+				float texel = texture(depth_map, light_space_pos.xy + vec2(x, y) * texelSize).r;
+				shadow_average += (current_depth > texel) ? 1.0 : 0.0;
+			}
 		}
+		shadow_average /= 9.0;
+	} else {
+		float texel = texture(depth_map, light_space_pos.xy).r;
+		shadow_average = (current_depth > texel) ? 1.0 : 0.0;
 	}
-	average_shadow /= 9.0;
 
 	vec4 ambient = diffuse_tex * ambient_light;
 	vec4 diffuse = diffuse_tex * diffuse_scale * diffuse_light;
 	vec4 specular = specular_tex * specular_scale * specular_light;
 
-	return ambient + ((diffuse + specular) * (1 - average_shadow));
+	return ambient + ((diffuse + specular) * (1 - shadow_average));
 }
 
 vec4 better_normalize(vec4 in_vec) {
