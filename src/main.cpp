@@ -132,9 +132,15 @@ int main()
 	static Model cube("./assets/other_3d/cube.obj");
 	static Model backpack("./assets/backpack/backpack.obj");
 
-	Shader light_shader("./glsl/light.vert", "./glsl/light.frag", "", "./glsl/include/shader_macros.h");
+	Shader light_shader;
+	light_shader.setShaderCode(Shader::Vertex, "./glsl/light.vert");
+	light_shader.setShaderCode(Shader::Fragment, "./glsl/light.frag", "./glsl/include/shader_macros.h");
+	light_shader.compile();
 	Shader skybox_shader("./glsl/skybox.vert", "./glsl/skybox.frag");
-	Shader default_shader("./glsl/default.vert", "./glsl/default.frag", "", "./glsl/include/shader_macros.h");
+	Shader default_shader;
+	default_shader.setShaderCode(Shader::Vertex, "./glsl/default.vert");
+	default_shader.setShaderCode(Shader::Fragment, "./glsl/default.frag", "./glsl/include/shader_macros.h");
+	default_shader.compile();
 	Shader normal_shader("./glsl/normal.vert", "./glsl/normal.frag", "./glsl/normal.geom");
 	Shader shadow_shader("./glsl/shadow.vert", "./glsl/shadow.frag");
 

@@ -18,7 +18,7 @@ public:
 
 	Shader();
 	Shader(const std::string& vertex_path, const std::string& fragment_path,
-		const std::string& geometry_path = "", const std::string& injectible_path = "");
+		const std::string& geometry_path={});
 	~Shader();
 	Shader(const Shader& other) = delete;
 	Shader(Shader&& other) noexcept;
@@ -26,7 +26,13 @@ public:
 	Shader& operator=(Shader&& other) noexcept;
 
 	unsigned int getId() const;
+	// set as active opengl shader
 	void activate() const;
+	// add glsl source code data, reset program if already compiled
+	bool setShaderCode(const ProgramType type, const std::string& code_path, const std::string& injected_code={});
+	// compile, attach, and link all shader programs
+	bool compile();
+
 	// utility uniform functions
 	// ------------------------------------------------------------------------
 	void setBool(const std::string &name, bool value) const;
@@ -45,8 +51,8 @@ public:
 	void setMat4(const std::string &name, const glm::mat4 &mat) const;
 
 private:
-	// initial setup
-	bool setupShader(const std::string& vertex_path, const std::string& fragment_path, const std::string& geometry_path, const std::string& injectible_path);
+	// cleanup program memory
+	void resetProgram();
 	// compile and attach shader code
 	bool compileAndAttach(const std::string& code, const ProgramType type) const;
 	// read file path and return shader code
@@ -56,13 +62,19 @@ private:
 	// convert shader program type data
 	std::string programTypeToString(const ProgramType type) const;
 	// update the line numbers in logs to account for the injected shader code
-	void updateLineNumbers(GLchar* log, const GLsizei max_size) const;
+	bool updateLineNumbers(GLchar* log, const GLsizei max_size, const ProgramType type) const;
 	// inject code after '#version' statement in shader
-	void injectCode(std::string &shaderCode, const std::string& injectible) const;
+	bool injectCode(std::string &source_code, const std::string& injected_code, unsigned int& num_injected_lines) const;
 
 	// shader program id
 	unsigned int id = 0;
-	// number of lines of code added to the glsl files
-	int num_injected_lines = 0;
+	// number of lines of code injected into the glsl files
+	unsigned int vertex_num_injected = 0;
+	unsigned int fragment_num_injected = 0;
+	unsigned int geometry_num_injected = 0;
+	// shader source code
+	std::string vertex_code;
+	std::string fragment_code;
+	std::string geometry_code;
 };
 #endif
