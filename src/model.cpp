@@ -31,7 +31,7 @@ void Model::loadModel(const std::string& path)
     const aiScene *scene = import.ReadFile(path, aiProcess_Triangulate);
     if(!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) 
     {
-        utils::err() << "ERROR::ASSIMP::" << import.GetErrorString() << "" << utils::endl;
+        LOG("ERROR::ASSIMP::" << import.GetErrorString() << "")
         return;
     }
 
@@ -105,7 +105,7 @@ std::vector<unsigned int> Model::processIndices(const aiMesh* mesh) const
 
     for(unsigned int i = 0; i < mesh->mNumFaces; i++) {
 		if (mesh->mFaces[i].mNumIndices != expected_face_vertices) {
-			utils::err() << "expected " << expected_face_vertices << " vertices in mesh face, but received " << mesh->mFaces[i].mNumIndices << " vertices" << utils::endl;
+			LOG("expected " << expected_face_vertices << " vertices in mesh face, but received " << mesh->mFaces[i].mNumIndices << " vertices")
 		}
 
     	for(unsigned int j = 0; j < expected_face_vertices; j++) {
@@ -229,7 +229,7 @@ bool Model::texFromFile(const std::string& filename, unsigned int& tex_id, const
     }
     else
     {
-        utils::err() << "Mesh::Texture failed to load at path: " << file_path << utils::endl;
+        LOG("Mesh::Texture failed to load at path: " << file_path)
         succ = false;
     }
 

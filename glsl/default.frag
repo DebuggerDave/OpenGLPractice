@@ -42,8 +42,21 @@ void main()
 	float shininess = material.shininess;
 
 	vec4 output_color = vec4(0.0);
-	for(int i=0; i<NUM_LIGHTS; i++) {
-		Light cur_light = lights[i];
+	for(int i=0; i<NUM_POINT_LIGHTS; i++) {
+		PointLight cur_light = point_lights[i];
+
+		vec4 light_pos = view * cur_light.pos;
+		vec4 light_to_frag_dir = better_normalize(frag_pos - light_pos);
+		float light_distance = distance(frag_pos, light_pos);
+
+		float attenuation = calc_attenuation(light_distance, cur_light.attenuation.constant, cur_light.attenuation.linear, cur_light.attenuation.quadratic);
+		vec4 light_calc = calc_light(norm, light_to_frag_dir, frag_pos, shininess, diffuse_tex, specular_tex, cur_light.color.ambient, cur_light.color.diffuse, cur_light.color.specular);
+
+		output_color += light_calc * attenuation;
+	}
+
+	for (int i=0; i<NUM_SPOT_LIGHTS; i++) {
+		SpotLight cur_light = spot_lights[i];
 
 		vec4 light_dir = vec4(light_normal_mat * cur_light.dir.xyz, 0.0);
 		light_dir = better_normalize(light_dir);
@@ -52,18 +65,18 @@ void main()
 		float light_distance = distance(frag_pos, light_pos);
 		
 		float spotlight = calc_spotlight_intensity(light_to_frag_dir, light_dir, cur_light.inner_angle_cosine, cur_light.outer_angle_cosine);
-		float attenuation = calc_attenuation(light_distance, cur_light.constant, cur_light.linear, cur_light.quadratic);
-		vec4 light_calc = calc_light(norm, light_to_frag_dir, frag_pos, shininess, diffuse_tex, specular_tex, cur_light.ambient, cur_light.diffuse, cur_light.specular);
+		float attenuation = calc_attenuation(light_distance, cur_light.attenuation.constant, cur_light.attenuation.linear, cur_light.attenuation.quadratic);
+		vec4 light_calc = calc_light(norm, light_to_frag_dir, frag_pos, shininess, diffuse_tex, specular_tex, cur_light.color.ambient, cur_light.color.diffuse, cur_light.color.specular);
 
 		output_color += light_calc * attenuation * spotlight;
 	}
 
 	for(int i=0; i<NUM_DIRECTIONAL_LIGHTS; i++) {
-		Directional_Light cur_light = directional_lights[i];
+		DirectionalLight cur_light = directional_lights[i];
 
 		vec4 light_dir = vec4(light_normal_mat * cur_light.dir.xyz, 0.0);
 		light_dir = better_normalize(light_dir);
-		output_color += calc_light(norm, light_dir, frag_pos, shininess, diffuse_tex, specular_tex, cur_light.ambient, cur_light.diffuse, cur_light.specular);
+		output_color += calc_light(norm, light_dir, frag_pos, shininess, diffuse_tex, specular_tex, cur_light.color.ambient, cur_light.color.diffuse, cur_light.color.specular);
 	}
 
 	frag_color = output_color;

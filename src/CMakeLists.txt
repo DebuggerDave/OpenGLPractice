@@ -5,4 +5,6 @@ target_sources(opengl_practice PUBLIC
                 stb_image.cpp
                 mesh.cpp
                 model.cpp
+                light_block.cpp
+                utils.cpp
                 )

@@ -1,60 +1,25 @@
-#include <fstream>
-#include <sstream>
-#include <iostream>
 #include <algorithm>
-#include <source_location>
 #include <iterator>
-#include <utility>
 #include <string>
 
 #include "shader.h"
 #include "utils.h"
+#include "light_block.h"
 
 Shader::Shader() : id(0) {}
 
-Shader::Shader(const std::string& vertex_path, const std::string& fragment_path, const std::string& geometry_path)
+Shader::Shader(std::string&& vertex_path, std::string&& fragment_path, std::string&& geometry_path)
 {
-	bool success = true;
+	setShaderCode(vertex_path, fragment_path, geometry_path);
+}
 
-	success &= setShaderCode(Vertex, vertex_path);
-	success &= setShaderCode(Fragment, fragment_path);
-	if (!geometry_path.empty()) {
-		success &= setShaderCode(Geometry, geometry_path);
-	}
-
-	success &= compile();
-
-	if (!success) {
-		utils::err() << "failed to construct shader program, leaving Shader object empty" << utils::endl;
-	}
+Shader::Shader(const std::string& vertex_path, const std::string& fragment_path, const std::string& geometry_pat)
+{
+	setShaderCode(vertex_path, fragment_path, geometry_path);
 }
 
 Shader::~Shader() {
 	resetProgram();
-}
-
-Shader::Shader(Shader&& other) noexcept :
-    id(std::exchange(other.id, 0)),
-	vertex_code(std::exchange(other.vertex_code, {})),
-	vertex_num_injected(std::exchange(other.vertex_num_injected, 0)),
-	fragment_code(std::exchange(other.fragment_code, {})),
-	fragment_num_injected(std::exchange(other.fragment_num_injected, 0)),
-	geometry_code(std::exchange(other.geometry_code, {})),
-	geometry_num_injected(std::exchange(other.geometry_num_injected, 0))
-	{}
-
-Shader& Shader::operator=(Shader&& other) noexcept
-{
-    resetProgram();
-    id = std::exchange(other.id, 0);
-	vertex_code = std::exchange(other.vertex_code, {});
-	vertex_num_injected = std::exchange(other.vertex_num_injected, 0);
-	fragment_code = std::exchange(other.fragment_code, {});
-	fragment_num_injected = std::exchange(other.fragment_num_injected, 0);
-	geometry_code = std::exchange(other.geometry_code, {});
-	geometry_num_injected = std::exchange(other.geometry_num_injected, 0);
-
-    return *this;
 }
 
 unsigned int Shader::getId() const
@@ -67,9 +32,125 @@ void Shader::activate() const
 	glUseProgram(id);
 }
 
-bool Shader::setShaderCode(const ProgramType type, const std::string& code_path, const std::string& injected_path)
+bool Shader::setShaderCode(const std::string& vertex_path, const std::string& fragment_path, const std::string& geometry_path)
+{
+	bool success = true;
+
+	success &= setShaderCode(Vertex, vertex_path);
+	success &= setShaderCode(Fragment, fragment_path);
+	if (!geometry_path.empty()) {
+		success &= setShaderCode(Geometry, geometry_path);
+	}
+
+	if (!success) {
+		LOG("Failed to set shader code")
+	}
+
+	return success;
+}
+
+bool Shader::setShaderCode(const ProgramType type, const std::string& code_path_in)
 {
 	resetProgram();
+
+	std::string* code = nullptr;
+	std::string* code_path = nullptr;
+	unsigned int* num_injected_lines = nullptr;
+	switch (type) {
+		case Vertex:
+			code = &vertex_code;
+			code_path = &vertex_path;
+			num_injected_lines = &vertex_num_injected;
+			break;
+		case Fragment:
+			code = &fragment_code;
+			code_path = &fragment_path;
+			num_injected_lines = &fragment_num_injected;
+			break;
+		case Geometry:
+			code = &geometry_code;
+			code_path = &geometry_path;
+			num_injected_lines = &geometry_num_injected;
+			break;
+		default:
+			LOG("Attempted to set invalid shader code type")
+			return false;
+	}
+
+	*num_injected_lines = 0;
+	*code = {};
+	*code_path = {};
+	if (!utils::readFile(code_path_in, *code)) {
+		LOG("Unable to parse " << programTypeToString(type) << " code")
+		return false;
+	}
+
+	*code_path = code_path_in;
+	return true;
+}
+
+void Shader::resetShaderCode(const ProgramType type)
+{
+	resetProgram();
+
+	std::string* code = nullptr;
+	std::string* code_path = nullptr;
+	unsigned int* num_injected_lines = nullptr;
+	switch (type) {
+		case Vertex:
+			code = &vertex_code;
+			code = &vertex_path;
+			num_injected_lines = &vertex_num_injected;
+			break;
+		case Fragment:
+			code = &fragment_code;
+			code = &fragment_path;
+			num_injected_lines = &fragment_num_injected;
+			break;
+		case Geometry:
+			code = &geometry_code;
+			code = &geometry_path;
+			num_injected_lines = &geometry_num_injected;
+			break;
+		default:
+			LOG("Cannot reset shader code, Invalid shader type")
+			return;
+	}
+
+	*code = {};
+	*code_path = {};
+	*num_injected_lines = 0;
+	lit_programs.erase(type);
+	if (lit_programs.empty()) {
+		light_block.reset();
+	}
+}
+
+bool Shader::addLights(const ProgramType type, std::shared_ptr<LightBlock> light_block_in)
+{
+
+	if (light_block && lit_programs.contains(type) && (light_block_in == light_block)) {
+		return true;
+	} else if (light_block && !light_block_in) {
+		light_block_in = light_block;
+	}
+
+	// no data
+	if (!light_block && !light_block_in) {
+		LOG("Failed to inject light code into " << programTypeToString(type) << " program, light data is empty")
+		return false;
+	// new data
+	} else if (light_block && (light_block_in != light_block)) {
+		LOG("Failed to inject light code into " << programTypeToString(type) << " program, this shader program already contains different light code")
+		return false;
+	// shader program not allocated
+	} else if (id != 0) {
+		LOG("Failed to inject light code into " << programTypeToString(type) << " program, Shader program is already compiled");
+		return false;
+	// light data not allocated
+	} else if (!light_block_in->isAllocated()) {
+		LOG("Failed to inject light code into " << programTypeToString(type) << " program, light block has not been allocated")
+	}
 
 	std::string* code = nullptr;
 	unsigned int* num_injected_lines = nullptr;
@@ -87,25 +168,20 @@ bool Shader::setShaderCode(const ProgramType type, const std::string& code_path,
 			num_injected_lines = &geometry_num_injected;
 			break;
 		default:
-			utils::err() << "Attempted to set invalid shader code type" << utils::endl;
+			LOG("Attempted to set invalid shader code type")
 			return false;
 	}
 
-	if (!readShaderFile(code_path, *code)) {
-		utils::err() << "Unable to parse " << programTypeToString(type) << " code" << utils::endl;
+	std::string injectible_code{light_block_in->getShaderCode()};
+	if (injectible_code.empty()) {
+		LOG("Unable to inject light code into " << programTypeToString(type) << " program, light code is empty")
 		return false;
-	}
-
-	if (!injected_path.empty()) {
-		std::string injected_code;
-		if(!readShaderFile(injected_path, injected_code)) {
-			utils::err() << "Unable to parse " << programTypeToString(type) << " injectible code" << utils::endl;
-			return false;
-		}
-		if (!injectCode(*code, injected_code, *num_injected_lines)) {
-			utils::err() << "Unable to inject code into " << programTypeToString(type) << " program" << utils::endl;
-		}
-
+	} else if (!injectCode(*code, injectible_code, *num_injected_lines)) {
+		LOG("Failed to inject light code into " << programTypeToString(type) << " program")
+		return false;
+	} else {
+		light_block = light_block_in;
+		lit_programs.insert(type);
 	}
 
 	return true;
@@ -127,8 +203,19 @@ bool Shader::compile()
 	glLinkProgram(id);
 	success &= checkCompileErrors(id, Linker);
 
+	if (light_block) {
+		GLuint light_block_index = glGetUniformBlockIndex(id, light_block->getName().c_str());
+		GLint actual_light_block_size{0};
+		glGetActiveUniformBlockiv(id, light_block_index, GL_UNIFORM_BLOCK_DATA_SIZE, &actual_light_block_size);
+		if (light_block->byteSize() != actual_light_block_size) {
+			LOG("Light block sizes do not match")
+			success = false;
+		}
+		glBindBufferBase(GL_UNIFORM_BUFFER, light_block_index, light_block->getId());
+	}
+
 	if (!success) {
-		utils::err() << "Unable to compile shader program" << utils::endl;
+		LOG("Unable to compile shader program")
 		resetProgram();
 	}
 
@@ -202,10 +289,10 @@ void Shader::resetProgram() {
 
 bool Shader::compileAndAttach(const std::string& code, const ProgramType type) const {
 	if (id == 0) {
-		utils::err() << "No program to attach to" << utils::endl;
+		LOG("No program to attach to")
 		return false;
 	} else if (code.empty()) {
-		utils::err() << "Shader code is empty" << utils::endl;
+		LOG("Shader code is empty")
 		return false;
 	}
 
@@ -218,7 +305,7 @@ bool Shader::compileAndAttach(const std::string& code, const ProgramType type) c
 		case Geometry:
 			shader_id = glCreateShader(GL_GEOMETRY_SHADER); break;
 		default:
-			utils::err() << "Shader program not recognized" << utils::endl;
+			LOG("Shader program not recognized")
 			return false;
 	}
 
@@ -230,32 +317,6 @@ bool Shader::compileAndAttach(const std::string& code, const ProgramType type) c
 	glDeleteShader(shader_id);
 
 	return checkCompileErrors(shader_id, type);
-}
-
-bool Shader::readShaderFile(const std::string& path, std::string& out) const {
-	out = {};
-	if (path.empty()) {
-		utils::err() << "shader code is empty" << utils::endl;
-		return false;
-	}
-
-	std::ifstream file;
-	file.exceptions(std::ifstream::failbit | std::ifstream::badbit);
-	try {
-		file.open(path);
-		std::stringstream stream;
-		stream << file.rdbuf();
-		file.close();
-		out = stream.str();
-	}
-	catch (std::ifstream::failure& e)
-	{
-		utils::err() << "unable to parse shader file" << utils::endl;
-		out = {};
-		return false;
-	}
-
-	return true;
 }
 
 std::string Shader::programTypeToString(const ProgramType type) const {
@@ -277,23 +338,39 @@ bool Shader::checkCompileErrors(const GLuint shader, const ProgramType type) con
 {
 	GLint success = true;
 	static const GLsizei max_size = 1024;
-	GLchar infoLog[max_size];
+	GLchar info_log[max_size];
 	if (type != Linker) {
 		glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
-		glGetShaderInfoLog(shader, max_size, NULL, infoLog);
-		updateLineNumbers(infoLog, max_size, type);
+		glGetShaderInfoLog(shader, max_size, NULL, info_log);
+		updateLineNumbers(info_log, max_size, type);
+		const std::string* code_path = nullptr;
+		const std::string* code = nullptr;
+		switch (type) {
+			case Vertex:
+			code = &vertex_code;
+				code_path = &vertex_path; break;
+			case Fragment:
+			code = &fragment_code;
+				code_path = &fragment_path; break;
+			case Geometry:
+			code = &geometry_code;
+				code_path = &geometry_path; break;
+			default:
+				LOG("Failed to get debug path data, invalid program type")
+		}
+		if (!success) {
+			LOG("\nFailed to compile the " << programTypeToString(type) << " shader at path " << *code_path)
+		}
 	}
 	else {
 		glGetProgramiv(shader, GL_LINK_STATUS, &success);
-		glGetProgramInfoLog(shader, max_size, NULL, infoLog);
+		glGetProgramInfoLog(shader, max_size, NULL, info_log);
+		if (!success) {
+			LOG("\nFailed to Link the shader program")
+		}
 	}
 
-	if (!success) {
-		utils::err e;
-		e << "\n";
-		e << "shader error of type: " << programTypeToString(type) << utils::endl;
-		e << infoLog << "\n";
-	}
+	utils::err() << info_log;
 
 	return success;
 }
@@ -306,7 +383,7 @@ bool Shader::updateLineNumbers(GLchar* log, const GLsizei max_size, const Progra
 		case Fragment: num_injected_lines = fragment_num_injected; break;
 		case Geometry: num_injected_lines = geometry_num_injected; break;
 		default:
-			utils::err() << "Unable to update log line numbers, program type invalid" << utils::endl;
+			LOG("Unable to update log line numbers, program type invalid")
 			return false;
 	}
 
@@ -325,47 +402,47 @@ bool Shader::updateLineNumbers(GLchar* log, const GLsizei max_size, const Progra
 				std::string new_line_num_str = std::to_string(line_num - num_injected_lines);
 				log_str.replace(start_pos, end_pos - start_pos, new_line_num_str);
 			} catch (std::invalid_argument const& ex) {
-				utils::err() << "Couldn't convert string to int" << utils::endl;
+				LOG("Couldn't convert string to int")
 				return false;
 			}
 		}
 	}
 
 	if (log_str.length() > max_size) {
-		utils::err() << "max string size reached, not updating log" << utils::endl;
+		LOG("max string size reached, not updating log")
 		return false;
-	} else {
-		memcpy(log, log_str.data(), log_str.size());
 	}
+
+	memcpy(log, log_str.data(), log_str.size());
+
 	return true;
 }
 
-bool Shader::injectCode(std::string &source_code, const std::string& injected_code, unsigned int& num_injected_lines) const
+bool Shader::injectCode(std::string &source_code, const std::string& injectible_code, unsigned int& num_injected_lines) const
 {
-	num_injected_lines = 0;
 	if(source_code.empty()) {
-		utils::err() << "Unable to inject code, source code is empty" << utils::endl;
+		LOG("Unable to inject code, source code is empty")
 		return false;
 	}
 
 	size_t version_pos = source_code.find_first_of("#version");
 	size_t insertion_pos = 0;
 
-	if (version_pos != std::string::npos) {
-		insertion_pos = source_code.find_first_of("\n");
-		if (insertion_pos != std::string::npos) {
-			insertion_pos++;
-		} else {
-			utils::err() << "Unable to inject code, source code is invalid" << utils::endl;
-			return false;
-		}
-	} else {
-		utils::err() << "Unable to inject code, source code is invalid" << utils::endl;
+	if (version_pos == std::string::npos) {
+		LOG("Unable to inject code, source code is invalid")
 		return false;
 	}
+	insertion_pos = source_code.find_first_of("\n");
+	if (insertion_pos == std::string::npos) {
+		LOG("Unable to inject code, source code is invalid")
+		return false;
+	}
+	// add one for the final newline character added
+	insertion_pos++;
 
-	source_code.insert(insertion_pos, injected_code + "\n");
+	source_code.insert(insertion_pos, injectible_code + "\n");
 	// add one for the extra newline added during insertion
-	num_injected_lines = std::count(injected_code.begin(), injected_code.end(), '\n') + 1;
+	num_injected_lines += std::count(injectible_code.begin(), injectible_code.end(), '\n') + 1;
+
 	return true;
 }

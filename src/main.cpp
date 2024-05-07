@@ -20,16 +20,13 @@
 #include "camera.h"
 #include "model.h"
 #include "utils.h"
+#include "light_block.h"
+#include "shader_lights.h"
 
 #include "imgui.h"
 #include "backends/imgui_impl_opengl3.h"
 #include "backends/imgui_impl_glfw.h"
 #include "misc/cpp/imgui_stdlib.h"
-
-#include "shader_macros.h"
-
-#define STRINGIFY_MACRO_EXPANSION(x) #x
-#define STRINGIFY(x) STRINGIFY_MACRO_EXPANSION(x)
 
 GLFWwindow* init();
 // glfw: whenever the window size changed (by OS or user resize) this callback function executes
@@ -43,7 +40,7 @@ void processMouseInput(GLFWwindow* window);
 void processGamepadInput(GLFWwindow* window);
 unsigned int loadCubemap(const std::vector<std::string>& faces);
 void renderScene(const glm::mat4& view, const glm::mat4& projection, const Shader& shader, const Model& grass, const Model& floor_model);
-void showImgui(bool* p_open = NULL);
+void showImgui(LightBlock& light_block, bool* p_open = NULL);
 
 // settings
 static const unsigned int SCR_WIDTH = 1280;
@@ -81,46 +78,6 @@ static const glm::vec3 cube_positions[] = {
 		glm::vec3(-2.6f,  2.0f, -3.0f)
 };
 
-// lights
-float ambient_scale = 0.2f;
-glm::vec4 light_color(1.0f);
-LightBlock light_block = {
-	.lights = {
-		// point light
-		{
-			.dir = glm::vec4(0.0f),
-			.pos = glm::vec4(0.0f, 1.0f, 0.0f, 1.0f),
-			.ambient = glm::vec4(0.0f),//light_color * ambient_scale,
-			.diffuse = glm::vec4(0.0f),//light_color,
-			.specular = glm::vec4(0.0f),//light_color,
-			.inner_angle_cosine = glm::cos(std::numbers::pi),
-			.outer_angle_cosine = glm::cos(std::numbers::pi),
-			.constant = 1.0f,
-			.linear = 0.0f,
-			.quadratic = 0.5f,
-		},
-		//spotlight
-		{
-			.dir = glm::vec4(glm::normalize(camera.getFront()), 0.0f),
-			.pos = glm::vec4(camera.getPosition(), 1.0f),
-			.ambient = glm::vec4(0.0f),//light_color * ambient_scale,
-			.diffuse = glm::vec4(0.0f),//light_color,
-			.specular = glm::vec4(0.0f),//light_color,
-			.inner_angle_cosine = glm::cos(glm::radians(15.0f)),
-			.outer_angle_cosine = glm::cos(glm::radians(25.0f)),
-			.constant = 1.0f,
-			.linear = 0.0f,
-			.quadratic = 0.5f,
-		}
-	},
-	// direction light
-	.directional_lights = {{
-		.dir = glm::normalize(glm::vec4(1.0f, -0.5f, 0.0f, 0.0f)),
-		.ambient = light_color * ambient_scale,
-		.diffuse = light_color,
-		.specular = light_color,
-	}},
-};
 
 int main()
 {
@@ -132,17 +89,21 @@ int main()
 	static Model cube("./assets/other_3d/cube.obj");
 	static Model backpack("./assets/backpack/backpack.obj");
 
-	Shader light_shader;
-	light_shader.setShaderCode(Shader::Vertex, "./glsl/light.vert");
-	light_shader.setShaderCode(Shader::Fragment, "./glsl/light.frag", "./glsl/include/shader_macros.h");
+	std::shared_ptr<LightBlock> light_block = LightBlock::makeShared(1, 1, 1);
+	light_block->allocate();
+
+	Shader light_shader("./glsl/light.vert", "./glsl/light.frag");
+	light_shader.addLights(Shader::Fragment, light_block);
 	light_shader.compile();
 	Shader skybox_shader("./glsl/skybox.vert", "./glsl/skybox.frag");
-	Shader default_shader;
-	default_shader.setShaderCode(Shader::Vertex, "./glsl/default.vert");
-	default_shader.setShaderCode(Shader::Fragment, "./glsl/default.frag", "./glsl/include/shader_macros.h");
+	skybox_shader.compile();
+	Shader default_shader("./glsl/default.vert", "./glsl/default.frag");
+	default_shader.addLights(Shader::Fragment, light_block);
 	default_shader.compile();
 	Shader normal_shader("./glsl/normal.vert", "./glsl/normal.frag", "./glsl/normal.geom");
+	normal_shader.compile();
 	Shader shadow_shader("./glsl/shadow.vert", "./glsl/shadow.frag");
+	shadow_shader.compile();
 
 	default_shader.activate();
 	default_shader.setFloat("material.shininess", std::pow(2, 4));
@@ -190,7 +151,7 @@ int main()
 		ImGui_ImplOpenGL3_NewFrame();
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
-		showImgui();
+		showImgui(*light_block);
 
 		// per-frame time logic
 		float current_frame = glfwGetTime();
@@ -198,29 +159,6 @@ int main()
 		lastFrame = current_frame;
 		// input
 		processInput(window);
-
-		// uniform buffer object
-		unsigned int ubo;
-		glGenBuffers(1, &ubo);
-		glBindBuffer(GL_UNIFORM_BUFFER, ubo);
-		GLuint ubo_index_default = glGetUniformBlockIndex(default_shader.getId(), "LightBlock");
-		GLuint ubo_index_light = glGetUniformBlockIndex(light_shader.getId(), "LightBlock");
-		GLint ubo_size_default, ubo_size_light = 0;
-		glGetActiveUniformBlockiv(default_shader.getId(), ubo_index_default, GL_UNIFORM_BLOCK_DATA_SIZE, &ubo_size_default);
-		if (sizeof(light_block) != ubo_size_default) {
-			utils::err() << "uniform block sizes do not match" << utils::endl;
-			return -1;
-		}
-		GLvoid* buffer = malloc(sizeof(light_block));
-		if (buffer == NULL) {
-			utils::err() << "failed to create uniform block buffer" << utils::endl;
-			return -1;
-		}
-		light_block.lights[1].dir = glm::vec4(camera.getFront(), 1.0f);
-		light_block.lights[1].pos = glm::vec4(camera.getPosition(), 1.0f);
-		memcpy(buffer, &light_block, sizeof(light_block));
-		glBufferData(GL_UNIFORM_BUFFER, sizeof(light_block), buffer, GL_DYNAMIC_DRAW);
-		glBindBufferBase(GL_UNIFORM_BUFFER, ubo_index_default, ubo);
 
 		// start rendering
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
@@ -239,8 +177,8 @@ int main()
 		glClear(GL_DEPTH_BUFFER_BIT);
 		float shadow_render_distance = 100;
 		glm::vec3 world_up(0.0, 1.0, 0.0);
-		glm::vec3 light_position((glm::vec3(-light_block.directional_lights[0].dir) * ((shadow_render_distance/2) + SHADOW_NEAR_PLANE)) + camera.getPosition());
-		glm::vec3 light_front(light_block.directional_lights[0].dir);
+		glm::vec3 light_position((glm::vec3(-light_block->read().directional_lights[0].dir) * ((shadow_render_distance/2) + SHADOW_NEAR_PLANE)) + camera.getPosition());
+		glm::vec3 light_front(light_block->read().directional_lights[0].dir);
 		glm::vec3 light_right(glm::normalize(glm::cross(light_front, world_up)));
 		glm::vec3 light_up(glm::normalize(glm::cross(light_right, light_front)));
 		glm::mat4 light_view = glm::lookAt(light_position, light_position + light_front, light_up);
@@ -266,19 +204,42 @@ int main()
 		light_shader.setMat4("view", view);
 		light_shader.setMat4("projection", projection);
 
-		// non-directional lights
-		for (int i=0; i<NUM_LIGHTS; i++) {
+		// TODO this stuff is redundant, fix it
+		// point lights
+		for (int i=0; i<light_block->read().point_lights.size(); i++) {
 			glm::vec4 zero(0.0f);
-			Light cur_light = light_block.lights[i];
+			PointLight cur_light = light_block->read().point_lights[i];
 			if (glm::all(glm::equal(cur_light.pos, glm::vec4(camera.getPosition(), 1.0))) || (
-					(glm::all(glm::equal(cur_light.ambient, zero))) &&
-					(glm::all(glm::equal(cur_light.diffuse, zero))) &&
-					(glm::all(glm::equal(cur_light.specular, zero)))
+					(glm::all(glm::equal(cur_light.color.ambient, zero))) &&
+					(glm::all(glm::equal(cur_light.color.diffuse, zero))) &&
+					(glm::all(glm::equal(cur_light.color.specular, zero)))
 				)
 			) {
 				continue;
 			}
-			light_shader.setVec4("light_color", cur_light.diffuse);
+			light_shader.setVec4("light_color", cur_light.color.diffuse);
+			glm::mat4 model = glm::mat4(1.0f);
+
+			model = glm::translate(model, glm::vec3(cur_light.pos));
+			model = glm::scale(model, glm::vec3(0.2f));
+
+			light_shader.setMat4("model", model);
+			cube.Draw(light_shader);
+		}
+
+		// spot lights
+		for (int i=0; i<light_block->read().spot_lights.size(); i++) {
+			glm::vec4 zero(0.0f);
+			SpotLight cur_light = light_block->read().spot_lights[i];
+			if (glm::all(glm::equal(cur_light.pos, glm::vec4(camera.getPosition(), 1.0))) || (
+					(glm::all(glm::equal(cur_light.color.ambient, zero))) &&
+					(glm::all(glm::equal(cur_light.color.diffuse, zero))) &&
+					(glm::all(glm::equal(cur_light.color.specular, zero)))
+				)
+			) {
+				continue;
+			}
+			light_shader.setVec4("light_color", cur_light.color.diffuse);
 			glm::mat4 model = glm::mat4(1.0f);
 
 			model = glm::translate(model, glm::vec3(cur_light.pos));
@@ -289,15 +250,15 @@ int main()
 		}
 
 		// directional lights
-		for (int i=0; i<NUM_DIRECTIONAL_LIGHTS; i++) {
+		for (int i=0; i<light_block->read().directional_lights.size(); i++) {
 			glm::vec4 zero(0.0f);
-			Directional_Light cur_light = light_block.directional_lights[i];
-			if ((glm::all(glm::equal(cur_light.ambient, zero))) &&
-				(glm::all(glm::equal(cur_light.diffuse, zero))) &&
-				(glm::all(glm::equal(cur_light.specular, zero)))) {
+			DirectionalLight cur_light = light_block->read().directional_lights[i];
+			if ((glm::all(glm::equal(cur_light.color.ambient, zero))) &&
+				(glm::all(glm::equal(cur_light.color.diffuse, zero))) &&
+				(glm::all(glm::equal(cur_light.color.specular, zero)))) {
 				continue;
 			}
-			light_shader.setVec4("light_color", cur_light.diffuse);
+			light_shader.setVec4("light_color", cur_light.color.diffuse);
 			glm::mat4 model = glm::mat4(1.0f);
 
 			model = glm::translate(model, camera.getPosition() + (glm::vec3(-cur_light.dir) * 100.0f));
@@ -342,7 +303,7 @@ GLFWwindow* init()
 	GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "LearnOpenGL", NULL, NULL);
 	if (window == NULL)
 	{
-		utils::err() << "Failed to create GLFW window" << utils::endl;
+		LOG("Failed to create GLFW window")
 		glfwTerminate();
 		return nullptr;
 	}
@@ -360,7 +321,7 @@ GLFWwindow* init()
 	// load all OpenGL function pointers
 	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
 	{
-		utils::err() << "Failed to initialize GLAD" << utils::endl;
+		LOG("Failed to initialize GLAD")
 		return nullptr;
 	}
 
@@ -585,7 +546,7 @@ void renderScene(const glm::mat4& view, const glm::mat4& projection, const Shade
 	}
 }
 
-void showImgui(bool* p_open)
+void showImgui(LightBlock& light_block, bool* p_open)
 {
 
     // We specify a default position/size in case there's no data in the .ini file.
@@ -602,8 +563,9 @@ void showImgui(bool* p_open)
         return;
     }
 
-	ImGui::SliderFloat3("shadow caster direction", glm::value_ptr(light_block.directional_lights[0].dir), -1.0f, 1.0f);
-	light_block.directional_lights[0].dir = glm::normalize(light_block.directional_lights[0].dir);
+	static glm::vec4 static_dir(0.0f, -1.0, 0.0, 0.0);
+	ImGui::SliderFloat3("shadow caster direction", glm::value_ptr(static_dir), -1.0f, 1.0f);
+	light_block.updateDirection(LightBlock::Directional, 0, glm::normalize(static_dir));
 
     ImGui::End();
 }

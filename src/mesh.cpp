@@ -55,7 +55,7 @@ void Mesh::Draw(const Shader& shader) const
 {
     // textures
     if (textures.size() > GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS) {
-        utils::err() << "unable to use all textures, exceeded max texture units" << utils::endl;
+        LOG("unable to use all textures, exceeded max texture units")
     }
     size_t num_tex = std::min((size_t)GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, textures.size());
     for(unsigned int tex_nums[NumTexTypes]={0}, i=0; i < num_tex; i++)
@@ -83,7 +83,7 @@ std::string Mesh::texTypeToString(const TexType type) const
     } else if (type == Normal) {
         return "normal";
     } else {
-        utils::err() << "unable to convert TexType to string, type unknown" << utils::endl;
+        LOG("unable to convert TexType to string, type unknown")
         return std::string("unknown");
     }
 }
@@ -96,7 +96,7 @@ bool Mesh::readyForSetup() const {
 void Mesh::setupMesh()
 {
     if (!readyForSetup()) {
-        utils::err() << "class is not ready for setup" << utils::endl;
+        LOG("class is not ready for setup")
         return;
     }
 

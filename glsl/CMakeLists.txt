@@ -10,7 +10,9 @@ set(COPYABLE_SHADERS
 	"${CMAKE_CURRENT_SOURCE_DIR}/skybox.vert"
 	"${CMAKE_CURRENT_SOURCE_DIR}/shadow.frag"
 	"${CMAKE_CURRENT_SOURCE_DIR}/shadow.vert"
-	"${CMAKE_CURRENT_SOURCE_DIR}/include/shader_macros.h"
+	"${CMAKE_CURRENT_SOURCE_DIR}/include/light_structs.h"
+	"${CMAKE_CURRENT_SOURCE_DIR}/include/light_uniform_buffer.h"
+	"${CMAKE_CURRENT_SOURCE_DIR}/include/shader_lights.h"
 )
 set(DEPS "")
 
