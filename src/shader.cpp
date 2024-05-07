@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <iterator>
 #include <string>
+#include <cstring>
 
 #include "shader.h"
 #include "utils.h"

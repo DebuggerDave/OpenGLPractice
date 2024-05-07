@@ -1,3 +1,6 @@
+# libstd
+target_link_libraries(opengl_practice PRIVATE -static-libgcc -static-libstdc++)
+
 # OpenGL
 find_package(OpenGL REQUIRED)
 target_link_libraries(opengl_practice PRIVATE OpenGL::GL)

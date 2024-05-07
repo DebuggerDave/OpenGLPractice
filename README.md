@@ -12,7 +12,7 @@ Learning OpenGL and some other stuff
 * `git submodule update --init --recursive`
 * `mkdir -p build`
 * `cd build`
-* `ASEPRITE=PATH_TP_ASEPRITE_EXECUTABLE cmake -S .. -D CMAKE_BULID_TYPE=Release -G "Ninja"`
+* `ASEPRITE=PATH_TP_ASEPRITE_EXECUTABLE cmake -S ..`
 * `cmake --build .`
 * `./opengl_practice.exe`
 

@@ -6,10 +6,6 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/ext/vector_relational.hpp>
 
-#include <iostream>
-#include <fstream>
-#include <limits>
-#include <numbers>
 #include <chrono>
 #include <vector>
 #include <string>
