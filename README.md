@@ -3,8 +3,6 @@ Learning OpenGL and some other stuff
 
 ### Notes
 * Asperite executable is optional, it enables generation of sprites from the .aseprite files
-* I use Ninja for my cmake generator, but anything works of course
-* This project is mainly tested and developed on Windows
 
 ### How to Build
 * `git clone PROJECT_GIT_URL`
