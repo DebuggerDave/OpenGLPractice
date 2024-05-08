@@ -4,6 +4,12 @@ Learning OpenGL and some other stuff
 ### Notes
 * Asperite executable is optional, it enables generation of sprites from the .aseprite files
 
+### Controls
+* WASD and mouse - move and look
+* joysticks - move and look
+* escape - quit
+* start - quit
+
 ### How to Build
 * `git clone PROJECT_GIT_URL`
 * `cd OpenGLPractice`
