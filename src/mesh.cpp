@@ -1,11 +1,8 @@
-#include <mesh.h>
+#include "mesh.h"
 
-#include <vector>
-#include <string>
-#include <iostream>
-#include <algorithm>
-
+#include "pch.h"
 #include "utils.h"
+#include "shader.h"
 
 Mesh::Mesh() :
     VAO(0), VBO(0), EBO(0)

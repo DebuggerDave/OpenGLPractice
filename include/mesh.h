@@ -1,13 +1,12 @@
 #ifndef MESH_H
 #define MESH_H
 
-#include <glm/glm.hpp>
+#include "glm/glm.hpp"
 
 #include <vector>
 #include <string>
-#include <utility>
 
-#include <shader.h>
+class Shader;
 
 class Mesh {
     public:

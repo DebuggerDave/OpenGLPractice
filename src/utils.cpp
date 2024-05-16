@@ -1,9 +1,19 @@
 #include "utils.h"
-
-#include <fstream>
-#include <sstream>
+#include "pch.h"
 
 namespace utils {
+
+	err::err(const std::source_location& source) : source(source) {}
+
+	err& err::operator<<(err& (*func)(err& e)) {
+		return func(*this);
+	}
+
+	err& endl(err& e ) {
+		std::cerr << " in '" << e.source.function_name() << ":" << e.source.line() << "'\n";
+		return e;
+	}
+
 	bool readFile(const std::string& path, std::string& out) {
 		out = {};
 		std::string file_contents{};

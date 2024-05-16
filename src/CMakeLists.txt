@@ -1,4 +1,4 @@
-target_sources(opengl_practice PUBLIC
+target_sources(opengl_practice PRIVATE
                 camera.cpp
                 main.cpp
                 shader.cpp

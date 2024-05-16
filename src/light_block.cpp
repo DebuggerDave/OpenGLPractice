@@ -1,20 +1,13 @@
 #include "light_block.h"
 
+#include "pch.h"
+#include "shader_lights.h"
 #include "utils.h"
 
-#include <cmath>
-#include <vector>
-#include <utility>
-#include <cstddef>
-#include <memory>
-
-#include "glm/glm.hpp"
-#include "glm/gtc/type_ptr.hpp"
-
-LightColor::LightColor() :
-	ambient{glm::vec4{0.2f}},
-	diffuse{glm::vec4{1.0f}},
-	specular{glm::vec4{1.0f}}
+LightColor::LightColor(const glm::vec4& ambient, const glm::vec4& diffuse, const glm::vec4& specular) :
+	ambient{ambient},
+	diffuse{diffuse},
+	specular{specular}
 	{}
 
 Attenuation::Attenuation() :
@@ -53,7 +46,7 @@ std::shared_ptr<LightBlock> LightBlock::makeShared(const size_t num_directional_
 }
 
 template<typename T>
-bool LightBlock::pushBack(T&& light) {
+bool LightBlock::pushBack(const T& light) {
 	if (id == 0) {
 		addLight(light);
 		return true;
@@ -63,11 +56,22 @@ bool LightBlock::pushBack(T&& light) {
 	}
 }
 template
-bool LightBlock::pushBack(const DirectionalLight&& light);
+bool LightBlock::pushBack(const DirectionalLight& light);
 template
-bool LightBlock::pushBack(const SpotLight&& light);
+bool LightBlock::pushBack(const SpotLight& light);
 template
-bool LightBlock::pushBack(const PointLight&& light);
+bool LightBlock::pushBack(const PointLight& light);
+
+template<typename T>
+bool LightBlock::pushBack(T&& light) {
+	if (id == 0) {
+		addLight(light);
+		return true;
+	} else {
+		LOG("Failed to add light, data already allocated on graphics card")
+		return false;
+	}
+}
 template
 bool LightBlock::pushBack(DirectionalLight&& light);
 template
@@ -81,12 +85,20 @@ bool LightBlock::updateDirection(const LightType type, const size_t index, const
 	switch (type)
 	{
 		case Directional:
+			if (index > uni_buff.directional_lights.size()) {
+				LOG("Unable to update light direction, invalid index")
+				return false;
+			}
 			uni_buff.directional_lights[index].dir = direction;
 			offset = offsetof(decltype(uni_buff), directional_lights)
 			+ offsetof(decltype(uni_buff.directional_lights)::value_type, dir)
 			+ (sizeof(DirectionalLight) * index);
 			break;
 		case Spot:
+			if (index > uni_buff.spot_lights.size()) {
+				LOG("Unable to update light direction, invalid index")
+				return false;
+			}
 			uni_buff.spot_lights[index].dir = direction;
 			offset = offsetof(decltype(uni_buff), spot_lights)
 			+ offsetof(decltype(uni_buff.spot_lights)::value_type, dir)
@@ -108,6 +120,54 @@ bool LightBlock::updateDirection(const LightType type, const size_t index, const
 	return true;
 }
 
+bool LightBlock::updateColor(const LightType type, const size_t index, const LightColor& color)
+{
+	size_t offset{0};
+	switch (type)
+	{
+		case Directional:
+			if (index > uni_buff.directional_lights.size()) {
+				LOG("Unable to update light color, invalid index")
+				return false;
+			}
+			uni_buff.spot_lights[index].color = color;
+			offset = offsetof(decltype(uni_buff), directional_lights)
+				+ offsetof(decltype(uni_buff.directional_lights)::value_type, color)
+				+ (sizeof(DirectionalLight) * index);
+			return false;
+			break;
+		case Spot:
+			if (index > uni_buff.spot_lights.size()) {
+				LOG("Unable to update light color, invalid index")
+				return false;
+			}
+			uni_buff.spot_lights[index].color = color;
+			offset = offsetof(decltype(uni_buff), spot_lights)
+				+ offsetof(decltype(uni_buff.spot_lights)::value_type, color)
+				+ (sizeof(SpotLight) * index);
+			break;
+		case Point:
+			if (index > uni_buff.point_lights.size()) {
+				LOG("Unable to update light color, invalid index")
+				return false;
+			}
+			uni_buff.point_lights[index].color = color;
+			offset = offsetof(decltype(uni_buff), point_lights)
+				+ offsetof(decltype(uni_buff.point_lights)::value_type, color)
+				+ (sizeof(PointLight) * index);
+			break;
+		default:
+			LOG("Unable to update light color, light type not supported")
+			return false;
+	}
+
+	if (id != 0) {
+		glBufferSubData(GL_UNIFORM_BUFFER, offset, sizeof(LightColor), &color);
+	}
+
+	return true;
+}
+
 bool LightBlock::updatePosition(const LightType type, const size_t index, const glm::vec4& position)
 {
 	size_t offset{0};
@@ -117,13 +177,22 @@ bool LightBlock::updatePosition(const LightType type, const size_t index, const 
 			LOG("Unable to update light position, light type doesn't have a position")
 			return false;
 			break;
+
 		case Spot:
+			if (index > uni_buff.spot_lights.size()) {
+				LOG("Unable to update light position, invalid index")
+				return false;
+			}
 			uni_buff.spot_lights[index].pos = position;
 			offset = offsetof(decltype(uni_buff), spot_lights)
 				+ offsetof(decltype(uni_buff.spot_lights)::value_type, pos)
 				+ (sizeof(SpotLight) * index);
 			break;
 		case Point:
+			if (index > uni_buff.point_lights.size()) {
+				LOG("Unable to update light position, invalid index")
+				return false;
+			}
 			uni_buff.point_lights[index].pos = position;
 			offset = offsetof(decltype(uni_buff), point_lights)
 				+ offsetof(decltype(uni_buff.point_lights)::value_type, pos)
@@ -175,7 +244,10 @@ size_t LightBlock::byteSize() const
 
 bool LightBlock::allocate()
 {
-	verifyData();
+	if (!verifyData()) {
+		LOG("Failed to allocate light block, data verification failed")
+		return false;
+	}
 	if (!genShaderCode()) {
 		LOG("Failed to allocate light block")
 		return false;
@@ -314,29 +386,39 @@ size_t LightBlock::vecMemCopy(void* destination, const std::vector<SpotLight>& s
 template
 size_t LightBlock::vecMemCopy(void* destination, const std::vector<PointLight>& source);
 
-void LightBlock::verifyData() const {
+bool LightBlock::verifyData() const {
 	const size_t expected_struct_size = sizeof(uni_buff);
 	size_t actual_struct_size = 0;
 	const size_t expected_data_size = byteSize();
 	size_t actual_data_size = 0;
+	bool success = true;
 
-	accumulateVerifyData(uni_buff.directional_lights, actual_struct_size, actual_data_size);
-	accumulateVerifyData(uni_buff.spot_lights, actual_struct_size, actual_data_size);
-	accumulateVerifyData(uni_buff.point_lights, actual_struct_size, actual_data_size);
+	success &= accumulateVerifyData(uni_buff.directional_lights, actual_struct_size, actual_data_size);
+	success &= accumulateVerifyData(uni_buff.spot_lights, actual_struct_size, actual_data_size);
+	success &= accumulateVerifyData(uni_buff.point_lights, actual_struct_size, actual_data_size);
 
 	if ((actual_struct_size != expected_struct_size) || (actual_data_size != expected_data_size)) {
+		success = false;
 		LOG("ERROR, not all light data is accounted for")
 	}
+
+	return success;
 }
 
 template <typename T>
-void LightBlock::accumulateVerifyData(const std::vector<T>& vec, size_t& struct_size, size_t& data_size) const {
+bool LightBlock::accumulateVerifyData(const std::vector<T>& vec, size_t& struct_size, size_t& data_size) const {
 	struct_size += sizeof(vec);
 	data_size += sizeof(T) * vec.size();
+
+	if (vec.size() < 1) {
+		LOG("Invalid vector size, cannot be less than 1")
+		return false;
+	}
+	return true;
 }
 template
-void LightBlock::accumulateVerifyData(const std::vector<DirectionalLight>& vec, size_t& struct_size, size_t& data_size) const;
+bool LightBlock::accumulateVerifyData(const std::vector<DirectionalLight>& vec, size_t& struct_size, size_t& data_size) const;
 template
-void LightBlock::accumulateVerifyData(const std::vector<SpotLight>& vec, size_t& struct_size, size_t& data_size) const ;
+bool LightBlock::accumulateVerifyData(const std::vector<SpotLight>& vec, size_t& struct_size, size_t& data_size) const ;
 template
-void LightBlock::accumulateVerifyData(const std::vector<PointLight>& vec, size_t& struct_size, size_t& data_size) const;
+bool LightBlock::accumulateVerifyData(const std::vector<PointLight>& vec, size_t& struct_size, size_t& data_size) const;

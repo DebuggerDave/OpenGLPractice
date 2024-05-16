@@ -1,9 +1,6 @@
-#include <algorithm>
-#include <iterator>
-#include <string>
-#include <cstring>
-
 #include "shader.h"
+
+#include "pch.h"
 #include "utils.h"
 #include "light_block.h"
 

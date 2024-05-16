@@ -1,14 +1,18 @@
 #ifndef MODEL_H
 #define MODEL_H
 
-#include "shader.h"
 #include "mesh.h"
+class Shader;
+
+// assimp forward decl
+class aiNode;
+class aiScene;
+class aiMesh;
+enum aiTextureType;
 
 #include <string>
 #include <vector>
 #include <unordered_map>
-
-#include <assimp/scene.h>
 
 class Model 
 {

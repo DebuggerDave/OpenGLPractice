@@ -17,18 +17,16 @@ namespace utils {
 	class err
 	{
 	public:
-		inline err(const std::source_location& source = std::source_location::current()) : source(source) {}
+		err(const std::source_location& source = std::source_location::current());
 
 		// forward stream to std::cerr
 		template <Streamable T>
-		inline err operator<<(const T& t) const {
+		err operator<<(const T& t) const {
 			std::cerr << t;
 			return *this;
 		}
 
-		inline err& operator<<(err& (*func)(err& e)) {
-			return func(*this);
-		}
+		err& operator<<(err& (*func)(err& e));
 
 		std::source_location source;
 	};
@@ -36,10 +34,7 @@ namespace utils {
 	// custom logs
 	// ----------
 	// print souce code location
-	inline err& endl(err& e ) {
-		std::cerr << " in '" << e.source.function_name() << ":" << e.source.line() << "'\n";
-		return e;
-	}
+	err& endl(err& e );
 
 	bool readFile(const std::string& path, std::string& out);
 

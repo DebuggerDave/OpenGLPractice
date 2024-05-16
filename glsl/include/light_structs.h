@@ -10,7 +10,7 @@
 
 struct LightColor {
 #ifdef __cplusplus
-    LightColor();
+    LightColor(const glm::vec4& ambient=glm::vec4(0.2f), const glm::vec4& diffuse=glm::vec4(1.0f), const glm::vec4& specular=glm::vec4(1.0f));
 #endif
     VEC4 ambient;
     VEC4 diffuse;

@@ -2,15 +2,11 @@
 #define LIGHTBLOCK
 
 #include "shader_lights.h"
-
 #include "utils.h"
-#include "light_uniform_buffer.h"
-
-#include <string>
-#include <memory>
 
 #include "glm/glm.hpp"
-#include "glad/glad.h"
+
+#include <string>
 
 class LightBlock
 {
@@ -22,13 +18,17 @@ public:
 	};
 
 	~LightBlock();
+	// This class is only accessible through shared pointer
 	static std::shared_ptr<LightBlock> makeShared(const size_t num_directional_light = 0, const size_t num_spot_light = 0, const size_t num_point_lights = 0);
+	// public push back functions
+	template<typename T>
+	bool pushBack(const T& light);
 	template<typename T>
 	bool pushBack(T&& light);
-	//template<typename T>
-	//bool pushBack(T&& light);
 	// BufferSubData new direction data into the graphics card
 	bool updateDirection(const LightType type, const size_t index, const glm::vec4& direction);
+	// BufferSubData new color data into the graphics card
+	bool updateColor(const LightType type, const size_t index, const LightColor& color);
 	// BufferSubData new position data into the graphics card
 	bool updatePosition(const LightType type, const size_t index, const glm::vec4& position);
 	// read only data
@@ -57,6 +57,7 @@ private:
 	LightBlock& operator=(const LightBlock& other) = delete;
 	LightBlock& operator=(LightBlock&& other) = delete;
 
+	// private push back functions
 	void addLight(const DirectionalLight& light);
 	void addLight(DirectionalLight&& light);
 	void addLight(const SpotLight& light);
@@ -72,10 +73,10 @@ private:
 	size_t vecMemCopy(void* destination, const std::vector<T>& source);
 	// TODO move this function to a test
 	// verify all data in struct is accounted for
-	void verifyData() const;
+	bool verifyData() const;
 	// accumulate size of vector in struct as std::vector and in memory as raw data
 	template <typename T>
-	void accumulateVerifyData(const std::vector<T>& vec, size_t& struct_size, size_t& data_size) const;
+	bool accumulateVerifyData(const std::vector<T>& vec, size_t& struct_size, size_t& data_size) const;
 
 	// gl buffer id
 	GLuint id{0};

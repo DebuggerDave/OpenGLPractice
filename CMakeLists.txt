@@ -1,13 +1,12 @@
-cmake_minimum_required(VERSION 3.26)
+cmake_minimum_required(VERSION 3.16)
 project(OpenGLPractice)
+set (CMAKE_CXX_STANDARD 23)
+set (CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_executable(opengl_practice)
-
-set_property(TARGET opengl_practice PROPERTY CXX_STANDARD 23)
 
 add_subdirectory(src)
 add_subdirectory(third_party)
 add_subdirectory(glsl)
 add_subdirectory(assets)
-
-target_include_directories(opengl_practice PRIVATE "${PROJECT_SOURCE_DIR}/include")
+add_subdirectory(include)

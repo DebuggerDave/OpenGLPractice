@@ -1,14 +1,13 @@
 #ifndef SHADER_H
 #define SHADER_H
 
-#include <glad/glad.h>
-#include <glm/glm.hpp>
+#include "light_block.h"
+
+#include "glm/glm.hpp"
 
 #include <string>
 #include <unordered_set>
 #include <memory>
-
-#include "light_block.h"
 
 class Shader
 {

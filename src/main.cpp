@@ -1,17 +1,4 @@
-#include <glad/glad.h>
-#include <GLFW/glfw3.h>
-
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
-#include <glm/ext/vector_relational.hpp>
-
-#include <chrono>
-#include <vector>
-#include <string>
-
-#include "stb_image.h"
-
+#include "pch.h"
 #include "shader.h"
 #include "camera.h"
 #include "model.h"
@@ -56,14 +43,12 @@ static const float MAX_SPEED = BASE_SPEED * 3.0f;
 Camera camera(glm::vec3(0.0f, 5.0f, 0.0f));
 static float lastX = SCR_WIDTH / 2.0f;
 static float lastY = SCR_HEIGHT / 2.0f;
-static bool firstMouse = true;
 
 // timing
 static float delta_time = 0.0f;
 static float lastFrame = 0.0f;
 
 static std::unordered_set<int> joystick_ids = {};
-static bool is_sprinting = false;
 
 // world space positions of our cubes
 static const glm::vec3 cube_positions[] = {
@@ -83,9 +68,12 @@ int main()
 	static Model floor_model("./assets/other_3d/floor.obj");
 	static Model grass("./assets/other_3d/grass.obj");
 	static Model cube("./assets/other_3d/cube.obj");
-	static Model backpack("./assets/backpack/backpack.obj");
+	//static Model backpack("./assets/backpack/backpack.obj");
 
 	std::shared_ptr<LightBlock> light_block = LightBlock::makeShared(1, 1, 1);
+	LightColor black{glm::vec4{0.0f}, glm::vec4(0.0f), glm::vec4(0.0f)};
+	light_block->updateColor(LightBlock::Spot, 0, black);
+	light_block->updateColor(LightBlock::Point, 0, black);
 	light_block->allocate();
 
 	Shader light_shader("./glsl/light.vert", "./glsl/light.frag");
@@ -96,8 +84,8 @@ int main()
 	Shader default_shader("./glsl/default.vert", "./glsl/default.frag");
 	default_shader.addLights(Shader::Fragment, light_block);
 	default_shader.compile();
-	Shader normal_shader("./glsl/normal.vert", "./glsl/normal.frag", "./glsl/normal.geom");
-	normal_shader.compile();
+	//Shader normal_shader("./glsl/normal.vert", "./glsl/normal.frag", "./glsl/normal.geom");
+	//normal_shader.compile();
 	Shader shadow_shader("./glsl/shadow.vert", "./glsl/shadow.frag");
 	shadow_shader.compile();
 
@@ -375,6 +363,8 @@ void processMouseInput(GLFWwindow *window)
 
 void processGamepadInput(GLFWwindow *window)
 {
+	static bool is_sprinting = false;
+
 	if (USE_GAMEPAD) {
 		GLFWgamepadstate state;
 		for (int i=0; i<joystick_ids.size(); i++) {
@@ -420,6 +410,7 @@ void framebufferSizeCallback(GLFWwindow* window, int width, int height)
 
 void mouseCallback(GLFWwindow* window, double xpos, double ypos)
 {
+	static bool firstMouse = true;
 	if (firstMouse)
 	{
 		lastX = xpos;

@@ -1,17 +1,10 @@
 #include "model.h"
 
-#include <cmath>
-#include <iostream>
-#include <source_location>
-
-#include <assimp/Importer.hpp>
-#include <assimp/scene.h>
-#include <assimp/postprocess.h>
-
-#include "stb_image.h"
-
+#include "pch.h"
 #include "shader.h"
 #include "utils.h"
+
+#include "assimp/scene.h"
 
 Model::Model(const std::string& path)
 {

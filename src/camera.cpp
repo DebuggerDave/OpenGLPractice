@@ -1,5 +1,7 @@
 #include "camera.h"
 
+#include "pch.h"
+
 Camera::Camera(const glm::vec3& position, const float yaw, const float pitch) :
 	mouse_sensitivity(default_mouse_sensitivity),
 	joystick_sensitivity(default_joystick_sensitivity),

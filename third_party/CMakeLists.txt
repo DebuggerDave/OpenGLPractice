@@ -1,3 +1,7 @@
+# no dev warnings for third party libraries
+set(no_dev_warnings_backup "$CACHE{CMAKE_SUPPRESS_DEVELOPER_WARNINGS}")
+set(CMAKE_SUPPRESS_DEVELOPER_WARNINGS ON CACHE INTERNAL "" FORCE)
+
 # libstd
 target_link_libraries(opengl_practice PRIVATE -static-libgcc -static-libstdc++)
 
@@ -39,7 +43,7 @@ target_link_libraries(opengl_practice PRIVATE assimp)
 
 # imgui
 # global files
-target_sources(opengl_practice PUBLIC
+target_sources(opengl_practice PRIVATE
                 ./imgui/imgui_demo.cpp
                 ./imgui/imgui_draw.cpp
                 ./imgui/imgui_tables.cpp
@@ -48,11 +52,14 @@ target_sources(opengl_practice PUBLIC
                 )
 target_include_directories(opengl_practice PRIVATE ./imgui)
 # graphics api specific
-target_sources(opengl_practice PUBLIC
+target_sources(opengl_practice PRIVATE
                 ./imgui/backends/imgui_impl_opengl3.cpp
                 ./imgui/backends/imgui_impl_glfw.cpp
                 )
 target_include_directories(opengl_practice PRIVATE ./imgui/backends)
 # std specific
-target_sources(opengl_practice PUBLIC ./imgui/misc/cpp/imgui_stdlib.cpp)
+target_sources(opengl_practice PRIVATE ./imgui/misc/cpp/imgui_stdlib.cpp)
 target_include_directories(opengl_practice PRIVATE ./imgui/misc/cpp)
+
+# reset dev warning variable after building third party libraries
+set(CMAKE_SUPPRESS_DEVELOPER_WARNINGS ${no_dev_warnings_backup} CACHE INTERNAL "" FORCE)
