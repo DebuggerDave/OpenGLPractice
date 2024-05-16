@@ -6,11 +6,6 @@
 #include "light_block.h"
 #include "shader_lights.h"
 
-#include "imgui.h"
-#include "backends/imgui_impl_opengl3.h"
-#include "backends/imgui_impl_glfw.h"
-#include "misc/cpp/imgui_stdlib.h"
-
 GLFWwindow* init();
 // glfw: whenever the window size changed (by OS or user resize) this callback function executes
 void framebufferSizeCallback(GLFWwindow* window, int width, int height);
@@ -303,7 +298,7 @@ GLFWwindow* init()
 	}
 
 	// load all OpenGL function pointers
-	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
+	if (!gladLoadGL(glfwGetProcAddress))
 	{
 		LOG("Failed to initialize GLAD")
 		return nullptr;

@@ -17,7 +17,7 @@ add_subdirectory(glfw)
 target_link_libraries(opengl_practice PRIVATE glfw)
 
 # glad
-target_sources(opengl_practice PRIVATE ./glad/src/glad.c)
+target_sources(opengl_practice PRIVATE ./glad/src/gl.c)
 target_include_directories(opengl_practice PRIVATE ./glad/include)
 
 # glm
@@ -42,20 +42,24 @@ add_subdirectory(assimp)
 target_link_libraries(opengl_practice PRIVATE assimp)
 
 # imgui
+# allow imgui to be in a pre-compiled header, it uses math operators internally
+target_compile_definitions(opengl_practice PRIVATE "-DIMGUI_DEFINE_MATH_OPERATORS")
+# ignore opengl loader code from imgui, we use glad2 instead
+target_compile_definitions(opengl_practice PRIVATE "-DIMGUI_IMPL_OPENGL_LOADER_CUSTOM")
 # global files
 target_sources(opengl_practice PRIVATE
-                ./imgui/imgui_demo.cpp
-                ./imgui/imgui_draw.cpp
-                ./imgui/imgui_tables.cpp
-                ./imgui/imgui_widgets.cpp
-                ./imgui/imgui.cpp
-                )
+    ./imgui/imgui_demo.cpp
+    ./imgui/imgui_draw.cpp
+    ./imgui/imgui_tables.cpp
+    ./imgui/imgui_widgets.cpp
+    ./imgui/imgui.cpp
+    )
 target_include_directories(opengl_practice PRIVATE ./imgui)
 # graphics api specific
 target_sources(opengl_practice PRIVATE
-                ./imgui/backends/imgui_impl_opengl3.cpp
-                ./imgui/backends/imgui_impl_glfw.cpp
-                )
+    ./imgui/backends/imgui_impl_opengl3.cpp
+    ./imgui/backends/imgui_impl_glfw.cpp
+    )
 target_include_directories(opengl_practice PRIVATE ./imgui/backends)
 # std specific
 target_sources(opengl_practice PRIVATE ./imgui/misc/cpp/imgui_stdlib.cpp)

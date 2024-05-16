@@ -4,8 +4,6 @@
 #include "shader.h"
 #include "utils.h"
 
-#include "assimp/scene.h"
-
 Model::Model(const std::string& path)
 {
 	loadModel(path);

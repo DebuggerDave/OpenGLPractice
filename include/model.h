@@ -4,11 +4,11 @@
 #include "mesh.h"
 class Shader;
 
+#include "assimp/material.h"
 // assimp forward decl
 class aiNode;
 class aiScene;
 class aiMesh;
-enum aiTextureType;
 
 #include <string>
 #include <vector>
