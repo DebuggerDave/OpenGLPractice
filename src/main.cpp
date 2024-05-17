@@ -298,7 +298,7 @@ GLFWwindow* init()
 	}
 
 	// load all OpenGL function pointers
-	if (!gladLoadGL(glfwGetProcAddress))
+	if (gladLoadGL(glfwGetProcAddress) == 0)
 	{
 		LOG("Failed to initialize GLAD")
 		return nullptr;
@@ -320,7 +320,7 @@ GLFWwindow* init()
 	ImGuiIO& io = ImGui::GetIO();
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
 	ImGui_ImplGlfw_InitForOpenGL(window, true);
-	ImGui_ImplOpenGL3_Init();
+	ImGui_ImplOpenGL3_Init(nullptr);
 
 	return window;
 }
