@@ -7,4 +7,5 @@ target_sources(opengl_practice PRIVATE
                 model.cpp
                 light_block.cpp
                 utils.cpp
+                world.cpp
                 )

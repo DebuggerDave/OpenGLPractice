@@ -2,11 +2,9 @@
 #define OPENGLPRACTICE_PCH_H
 
 #include <chrono>
-#include <vector>
 #include <string>
 #include <fstream>
 #include <sstream>
-#include <memory>
 #include <utility>
 
 #include "glad/gl.h"
@@ -28,5 +26,9 @@
 #include "imgui_impl_opengl3.h"
 
 #include "stb_image.h"
+
+#include "entt/entt.hpp"
+
+#include "PerlinNoise.hpp"
 
 #endif

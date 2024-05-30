@@ -5,6 +5,11 @@
 #include "utils.h"
 #include "light_block.h"
 #include "shader_lights.h"
+#include "world.h"
+
+#include <unordered_set>
+#include <vector>
+#include <memory>
 
 GLFWwindow* init();
 // glfw: whenever the window size changed (by OS or user resize) this callback function executes
@@ -54,11 +59,12 @@ static const glm::vec3 cube_positions[] = {
 		glm::vec3(-2.6f,  2.0f, -3.0f)
 };
 
-
 int main()
 {
 	GLFWwindow* window = init();
 	if (!window) return -1;
+
+	World world;
 
 	static Model floor_model("./assets/other_3d/floor.obj");
 	static Model grass("./assets/other_3d/grass.obj");

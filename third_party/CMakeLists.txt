@@ -65,5 +65,12 @@ target_include_directories(opengl_practice PRIVATE ./imgui/backends)
 target_sources(opengl_practice PRIVATE ./imgui/misc/cpp/imgui_stdlib.cpp)
 target_include_directories(opengl_practice PRIVATE ./imgui/misc/cpp)
 
+#entt
+add_subdirectory(entt)
+target_link_libraries(opengl_practice PRIVATE EnTT)
+
+#perlin noise
+target_include_directories(opengl_practice PRIVATE ./PerlinNoise)
+
 # reset dev warning variable after building third party libraries
 set(CMAKE_SUPPRESS_DEVELOPER_WARNINGS ${no_dev_warnings_backup} CACHE INTERNAL "" FORCE)

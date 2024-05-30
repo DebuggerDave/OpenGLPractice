@@ -4,6 +4,8 @@
 #include "utils.h"
 #include "shader.h"
 
+#include <vector>
+
 Mesh::Mesh() :
     VAO(0), VBO(0), EBO(0)
 {}

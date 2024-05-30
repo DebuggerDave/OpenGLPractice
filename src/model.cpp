@@ -4,6 +4,8 @@
 #include "shader.h"
 #include "utils.h"
 
+#include <vector>
+
 Model::Model(const std::string& path)
 {
 	loadModel(path);

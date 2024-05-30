@@ -4,6 +4,9 @@
 #include "shader_lights.h"
 #include "utils.h"
 
+#include <vector>
+#include <memory>
+
 LightColor::LightColor(const glm::vec4& ambient, const glm::vec4& diffuse, const glm::vec4& specular) :
 	ambient{ambient},
 	diffuse{diffuse},

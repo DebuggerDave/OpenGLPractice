@@ -4,6 +4,8 @@
 #include "utils.h"
 #include "light_block.h"
 
+#include <memory>
+
 Shader::Shader() : id(0) {}
 
 Shader::Shader(std::string&& vertex_path, std::string&& fragment_path, std::string&& geometry_path)
