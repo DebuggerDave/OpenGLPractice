@@ -2,6 +2,9 @@
 set(no_dev_warnings_backup "$CACHE{CMAKE_SUPPRESS_DEVELOPER_WARNINGS}")
 set(CMAKE_SUPPRESS_DEVELOPER_WARNINGS ON CACHE INTERNAL "" FORCE)
 
+# static libs
+option(BUILD_SHARED_LIBS OFF)
+
 # libstd
 target_link_libraries(opengl_practice PRIVATE -static-libgcc -static-libstdc++)
 
@@ -29,7 +32,6 @@ target_link_libraries(opengl_practice PRIVATE glm::glm)
 target_include_directories(opengl_practice PRIVATE ./stb)
 
 # assimp
-set(BUILD_SHARED_LIBS OFF)
 set(ASSIMP_BUILD_TESTS OFF)
 set(ASSIMP_INSTALL OFF)
 set(ASSIMP_NO_EXPORT ON)

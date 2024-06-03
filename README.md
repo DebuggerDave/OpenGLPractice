@@ -10,12 +10,18 @@ Learning OpenGL and some other stuff
 * escape - quit
 * start - quit
 
+### Requirements
+* C++ 20
+* Cmake 3.16
+
 ### How to Build
 * `git clone PROJECT_GIT_URL`
 * `cd OpenGLPractice`
 * `git submodule update --init --recursive`
 * `mkdir -p build`
 * `cd build`
+* Linux only, install glfw dependencies
+  * `sudo apt install libwayland-dev libxkbcommon-dev xorg-dev`
 * `ASEPRITE=PATH_TP_ASEPRITE_EXECUTABLE cmake -S ..`
 * `cmake --build .`
 * `./opengl_practice.exe`
