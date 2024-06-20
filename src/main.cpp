@@ -4,64 +4,20 @@
 #include "model.h"
 #include "utils.h"
 #include "light_block.h"
-#include "shader_lights.h"
+#include "light_uniform_buffer.h"
 #include "world.h"
+#include "component.h"
+#include "constants.h"
+#include "system_utils.h"
 
-#include <unordered_set>
 #include <vector>
 #include <memory>
 
-GLFWwindow* init();
-// glfw: whenever the window size changed (by OS or user resize) this callback function executes
-void framebufferSizeCallback(GLFWwindow* window, int width, int height);
-void mouseCallback(GLFWwindow* window, double xpos, double ypos);
-void scrollCallback(GLFWwindow* window, double xoffset, double yoffset);
-void joystickCallback(int jid, int event);
-void findJoysticks();
-void processInput(GLFWwindow* window);
-void processMouseInput(GLFWwindow* window);
-void processGamepadInput(GLFWwindow* window);
-unsigned int loadCubemap(const std::vector<std::string>& faces);
-void renderScene(const glm::mat4& view, const glm::mat4& projection, const Shader& shader, const Model& grass, const Model& floor_model);
-void showImgui(LightBlock& light_block, bool* p_open = NULL);
-
-// settings
-static const unsigned int SCR_WIDTH = 1280;
-static const unsigned int SCR_HEIGHT = 720;
-static const unsigned int SHADOW_RESOLUTION = 1024;
-static const unsigned int SHADOW_WIDTH = SHADOW_RESOLUTION;
-static const unsigned int SHADOW_HEIGHT = SHADOW_RESOLUTION;
-static const float SHADOW_NEAR_PLANE = 5.0f;
-static const float FAR_PLANE = 100.0f;
-static const float NEAR_PLANE = 0.1f;
-static const bool USE_MOUSE = false;
-static const bool USE_GAMEPAD = true;
-static const float BASE_SPEED = 2.5f;
-static const float MAX_SPEED = BASE_SPEED * 3.0f;
-
-// camera
-Camera camera(glm::vec3(0.0f, 5.0f, 0.0f));
-static float lastX = SCR_WIDTH / 2.0f;
-static float lastY = SCR_HEIGHT / 2.0f;
-
-// timing
-static float delta_time = 0.0f;
-static float lastFrame = 0.0f;
-
-static std::unordered_set<int> joystick_ids = {};
-
-// world space positions of our cubes
-static const glm::vec3 cube_positions[] = {
-		glm::vec3( 0.0f,  0.5f,  0.0f),
-		glm::vec3( 4.0f,  10.0f, -30.0f),
-		glm::vec3(-3.4f,  6.0f, -15.0f),
-		glm::vec3( 3.0f,  4.0f, -5.0f),
-		glm::vec3(-2.6f,  2.0f, -3.0f)
-};
-
 int main()
 {
-	GLFWwindow* window = init();
+	Camera camera(0, World::terrain_median_height + World::terrain_aplitude, 0);
+
+	GLFWwindow* window = init(camera);
 	if (!window) return -1;
 
 	World world;
@@ -73,17 +29,17 @@ int main()
 
 	std::shared_ptr<LightBlock> light_block = LightBlock::makeShared(1, 1, 1);
 	LightColor black{glm::vec4{0.0f}, glm::vec4(0.0f), glm::vec4(0.0f)};
-	light_block->updateColor(LightBlock::Spot, 0, black);
-	light_block->updateColor(LightBlock::Point, 0, black);
+	light_block->updateColor(LightBlock::LightType::Spot, 0, black);
+	light_block->updateColor(LightBlock::LightType::Point, 0, black);
 	light_block->allocate();
 
 	Shader light_shader("./glsl/light.vert", "./glsl/light.frag");
-	light_shader.addLights(Shader::Fragment, light_block);
+	light_shader.addLights(Shader::ProgramType::Fragment, light_block);
 	light_shader.compile();
 	Shader skybox_shader("./glsl/skybox.vert", "./glsl/skybox.frag");
 	skybox_shader.compile();
 	Shader default_shader("./glsl/default.vert", "./glsl/default.frag");
-	default_shader.addLights(Shader::Fragment, light_block);
+	default_shader.addLights(Shader::ProgramType::Fragment, light_block);
 	default_shader.compile();
 	//Shader normal_shader("./glsl/normal.vert", "./glsl/normal.frag", "./glsl/normal.geom");
 	//normal_shader.compile();
@@ -130,6 +86,8 @@ int main()
 	glReadBuffer(GL_NONE);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
+	float delta_time = 0.0f;
+	float last_frame_time = 0.0f;
 	// render loop
 	while (!glfwWindowShouldClose(window))
 	{
@@ -139,11 +97,11 @@ int main()
 		showImgui(*light_block);
 
 		// per-frame time logic
-		float current_frame = glfwGetTime();
-		delta_time = current_frame - lastFrame;
-		lastFrame = current_frame;
+		float current_frame_time = glfwGetTime();
+		delta_time = current_frame_time - last_frame_time;
+		last_frame_time = current_frame_time;
 		// input
-		processInput(window);
+		processInput(window, delta_time, camera);
 
 		// start rendering
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
@@ -168,7 +126,7 @@ int main()
 		glm::vec3 light_up(glm::normalize(glm::cross(light_right, light_front)));
 		glm::mat4 light_view = glm::lookAt(light_position, light_position + light_front, light_up);
 		glm::mat4 light_projection = glm::ortho(-shadow_render_distance/2, shadow_render_distance/2, -shadow_render_distance/2, shadow_render_distance/2, SHADOW_NEAR_PLANE, shadow_render_distance + SHADOW_NEAR_PLANE);
-		renderScene(light_view, light_projection, shadow_shader, grass, floor_model);
+		renderScene(light_view, light_projection, shadow_shader, grass, dirt, world);
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
 		glPolygonOffset(0.0f, 0.0f);
@@ -181,7 +139,7 @@ int main()
 		glBindTexture(GL_TEXTURE_2D, depth_map);
 		default_shader.setMat4("light_view", light_view);
 		default_shader.setMat4("light_projection", light_projection);
-		renderScene(view, projection, default_shader, grass, floor_model);
+		renderScene(view, projection, default_shader, grass, dirt, world);
 
 		// lights
 		// ----
@@ -274,286 +232,4 @@ int main()
 	ImGui::DestroyContext();
 	glfwTerminate();
 	return 0;
-}
-
-GLFWwindow* init()
-{
-	glfwInit();
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
-	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-#ifdef __APPLE__
-	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-#endif
-	GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "LearnOpenGL", NULL, NULL);
-	if (window == NULL)
-	{
-		LOG("Failed to create GLFW window")
-		glfwTerminate();
-		return nullptr;
-	}
-	glfwMakeContextCurrent(window);
-	glfwSetFramebufferSizeCallback(window, framebufferSizeCallback);
-	glfwSetJoystickCallback(joystickCallback);
-	if (USE_GAMEPAD)
-		findJoysticks();
-	if (USE_MOUSE) {
-		glfwSetCursorPosCallback(window, mouseCallback);
-		glfwSetScrollCallback(window, scrollCallback);
-		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-	}
-
-	// load all OpenGL function pointers
-	if (gladLoadGL(glfwGetProcAddress) == 0)
-	{
-		LOG("Failed to initialize GLAD")
-		return nullptr;
-	}
-
-	// Make sure fragment scene depth is calculated properly
-	glEnable(GL_DEPTH_TEST);
-	glDepthFunc(GL_LEQUAL);
-	// culling
-	glEnable(GL_CULL_FACE);
-	// gamma correction
-	glEnable(GL_FRAMEBUFFER_SRGB);
-	// offset depth calculation for shadow map
-	glEnable(GL_POLYGON_OFFSET_FILL);
-
-	// imgui
-	IMGUI_CHECKVERSION();
-	ImGui::CreateContext();
-	ImGuiIO& io = ImGui::GetIO();
-	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
-	ImGui_ImplGlfw_InitForOpenGL(window, true);
-	ImGui_ImplOpenGL3_Init(nullptr);
-
-	return window;
-}
-
-// process all input: query GLFW whether relevant keys are pressed/released this frame and react accordingly
-void processInput(GLFWwindow *window)
-{
-	processMouseInput(window);
-	processGamepadInput(window);
-}
-
-void processMouseInput(GLFWwindow *window)
-{
-	if (USE_MOUSE) {
-		float velocity = BASE_SPEED * delta_time;
-		if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-			glfwSetWindowShouldClose(window, true);
-
-		if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
-			velocity = MAX_SPEED * delta_time;
-		if ((glfwGetKey(window, GLFW_KEY_COMMA) == GLFW_PRESS) || (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS))
-			camera.processMovement(Camera::moveForward, velocity);
-		if ((glfwGetKey(window, GLFW_KEY_O) == GLFW_PRESS) || (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS))
-			camera.processMovement(Camera::moveBackward, velocity);
-		if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-			camera.processMovement(Camera::moveLeft, velocity);
-		if ((glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) || (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS))
-			camera.processMovement(Camera::moveRight, velocity);
-		if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
-			camera.processMovement(Camera::moveUp, velocity);
-		if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
-			camera.processMovement(Camera::moveDown, velocity);
-	}
-}
-
-void processGamepadInput(GLFWwindow *window)
-{
-	static bool is_sprinting = false;
-
-	if (USE_GAMEPAD) {
-		GLFWgamepadstate state;
-		for (int i=0; i<joystick_ids.size(); i++) {
-			static const float min_dead_zone = 0.1f;
-			bool moved = false;
-			float velocity = BASE_SPEED * delta_time;
-			if (glfwGetGamepadState(i, &state)) {
-				is_sprinting |= state.buttons[GLFW_GAMEPAD_BUTTON_LEFT_THUMB];
-				if (is_sprinting)
-					velocity = MAX_SPEED * delta_time;
-
-				if (state.buttons[GLFW_GAMEPAD_BUTTON_START])
-					glfwSetWindowShouldClose(window, true);
-				if (std::abs(state.axes[GLFW_GAMEPAD_AXIS_LEFT_Y]) > min_dead_zone) {
-					camera.processMovement(Camera::moveForward, velocity * -state.axes[GLFW_GAMEPAD_AXIS_LEFT_Y]);
-					moved = true;
-				}
-				if (std::abs(state.axes[GLFW_GAMEPAD_AXIS_LEFT_X]) > min_dead_zone) {
-					camera.processMovement(Camera::moveRight, velocity * state.axes[GLFW_GAMEPAD_AXIS_LEFT_X]);
-					moved = true;
-				}
-				if (state.buttons[GLFW_GAMEPAD_BUTTON_A])
-					camera.processMovement(Camera::moveUp, velocity);
-				if (state.buttons[GLFW_GAMEPAD_BUTTON_B])
-					camera.processMovement(Camera::moveDown, velocity);
-				float right_x_offset = (abs(state.axes[GLFW_GAMEPAD_AXIS_RIGHT_X]) < min_dead_zone) ? 0 : state.axes[GLFW_GAMEPAD_AXIS_RIGHT_X];
-				float right_y_offset = (abs(state.axes[GLFW_GAMEPAD_AXIS_RIGHT_Y]) < min_dead_zone) ? 0 : -state.axes[GLFW_GAMEPAD_AXIS_RIGHT_Y];
-				camera.processJoystickRotation(right_x_offset, right_y_offset);
-
-				is_sprinting &= moved;
-			}
-		}
-	}
-}
-
-void framebufferSizeCallback(GLFWwindow* window, int width, int height)
-{
-	// make sure the viewport matches the new window dimensions
-	// width and height will be significantly larger than specified on retina displays.
-	glViewport(0, 0, width, height);
-}
-
-
-void mouseCallback(GLFWwindow* window, double xpos, double ypos)
-{
-	static bool firstMouse = true;
-	if (firstMouse)
-	{
-		lastX = xpos;
-		lastY = ypos;
-		firstMouse = false;
-	}
-
-	float xoffset = xpos - lastX;
-	// y moves from bottom to top
-	float yoffset = lastY - ypos;
-
-	lastX = xpos;
-	lastY = ypos;
-
-	camera.processMouseRotation(xoffset, yoffset);
-}
-
-void scrollCallback(GLFWwindow* window, double xoffset, double yoffset)
-{
-	camera.processZoom(yoffset);
-}
-
-void joystickCallback(int jid, int event)
-{
-	if ((event = GLFW_CONNECTED) && glfwJoystickIsGamepad(jid)) {
-		joystick_ids.emplace(jid);
-	} else {
-		joystick_ids.erase(jid);
-	}
-}
-
-void findJoysticks()
-{
-	joystick_ids.clear();
-	for (int i=GLFW_JOYSTICK_1; i <= GLFW_JOYSTICK_LAST; i++) {
-		if (glfwJoystickIsGamepad(i)) {
-			joystick_ids.emplace();
-		}
-	}
-}
-
-unsigned int loadCubemap(const std::vector<std::string>& faces)
-{
-    unsigned int textureID;
-    glGenTextures(1, &textureID);
-    glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
-	
-	int width, height, num_components;
-	stbi_set_flip_vertically_on_load(false);
-	for (unsigned int i = 0; i < faces.size(); i++)
-    {
-
-        unsigned char *data = stbi_load(faces[i].c_str(), &width, &height, &num_components, 0);
-        if (data)
-        {
-			GLenum format;
-			if (num_components == 1)
-				format = GL_RED;
-			else if (num_components == 3)
-				format = GL_RGB;
-			else if (num_components == 4)
-				format = GL_RGBA;
-
-			glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
-				0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
-			stbi_image_free(data);
-        }
-        else
-        {
-            std::cout << "Cubemap tex failed to load at path: " << faces[i] << std::endl;
-            stbi_image_free(data);
-        }
-    }
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-
-    return textureID;
-}
-
-void renderScene(const glm::mat4& view, const glm::mat4& projection, const Shader& shader, const Model& grass, const Model& floor_model)
-{
-	shader.activate();
-	shader.setMat4("view", view);
-	shader.setMat4("projection", projection);
-	shader.setMat3("light_normal_mat", glm::transpose(glm::inverse(glm::mat3(view))));
-
-	// floor
-	glm::mat4 model = glm::mat4(1.0f);
-	model = glm::scale(model, glm::vec3(25.0f, 1.0f, 25.0f));
-	glm::mat3 normal_mat = glm::transpose(glm::inverse(glm::mat3(view * model)));
-	shader.setMat4("model", model);
-	shader.setMat3("normal_mat", normal_mat);
-	floor_model.Draw(shader);
-
-	// floor flipped and lowered
-	model = glm::mat4(1.0f);
-	model = glm::translate(model, glm::vec3(0.0f, -0.1, 0.0f));
-	model = glm::rotate(model, glm::radians(180.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-	model = glm::scale(model, glm::vec3(25.0f, 1.0f, 25.0f));
-	normal_mat = glm::transpose(glm::inverse(glm::mat3(view * model)));
-	shader.setMat4("model", model);
-	shader.setMat3("normal_mat", normal_mat);
-	floor_model.Draw(shader);
-
-	for (unsigned int i = 0; i < (sizeof(cube_positions)/sizeof(cube_positions[0])); i++)
-	{
-		// calculate the model matrix for each object and pass it to shader before drawing
-		glm::mat4 model = glm::mat4(1.0f); // make sure to initialize matrix to identity matrix first
-		model = glm::translate(model, cube_positions[i]);
-		float angle = 20.0f * i;
-		//model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
-		glm::mat3 normal_mat = glm::transpose(glm::inverse(glm::mat3(view * model)));
-
-		shader.setMat4("model", model);
-		shader.setMat3("normal_mat", normal_mat);
-		grass.Draw(shader);
-	}
-}
-
-void showImgui(LightBlock& light_block, bool* p_open)
-{
-
-    // We specify a default position/size in case there's no data in the .ini file.
-    // We only do it to make the demo applications a little more welcoming, but typically this isn't required.
-    const ImGuiViewport* main_viewport = ImGui::GetMainViewport();
-    ImGui::SetNextWindowPos(ImVec2(main_viewport->WorkPos.x + 10, main_viewport->WorkPos.y + 10), ImGuiCond_FirstUseEver);
-    ImGui::SetNextWindowSize(ImVec2(550, 100), ImGuiCond_FirstUseEver);
-
-    // Main body of the Demo window starts here.
-    if (!ImGui::Begin("Dear ImGui", p_open, 0))
-    {
-        // Early out if the window is collapsed, as an optimization.
-        ImGui::End();
-        return;
-    }
-
-	static glm::vec4 static_dir(0.0f, -1.0, 0.0, 0.0);
-	ImGui::SliderFloat3("shadow caster direction", glm::value_ptr(static_dir), -1.0f, 1.0f);
-	light_block.updateDirection(LightBlock::Directional, 0, glm::normalize(static_dir));
-
-    ImGui::End();
 }

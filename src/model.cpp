@@ -2,6 +2,7 @@
 
 #include "pch.h"
 #include "shader.h"
+#include "mesh.h"
 #include "utils.h"
 
 #include <vector>

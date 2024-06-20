@@ -1,9 +1,10 @@
 #ifndef SHADER_H
 #define SHADER_H
 
-#include "light_block.h"
+class LightBlock;
 
-#include "glm/glm.hpp"
+#include "glm/fwd.hpp"
+#include "glad/gl.h"
 
 #include <string>
 #include <unordered_set>
@@ -12,7 +13,7 @@
 class Shader
 {
 public:
-	enum ProgramType {
+	enum class ProgramType {
 		Linker,
 		Vertex,
 		Fragment,

@@ -57,7 +57,7 @@ void Mesh::Draw(const Shader& shader) const
         LOG("unable to use all textures, exceeded max texture units")
     }
     size_t num_tex = std::min((size_t)GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, textures.size());
-    for(unsigned int tex_nums[NumTexTypes]={0}, i=0; i < num_tex; i++)
+    for(unsigned int tex_nums[(int)TexType::NumTexTypes]={0}, i=0; i < num_tex; i++)
     {
         TexType type = textures[i].type;
         std::string uniform;
@@ -75,11 +75,11 @@ void Mesh::Draw(const Shader& shader) const
 
 std::string Mesh::texTypeToString(const TexType type) const
 {
-    if (type == Diffuse) {
+    if (type == TexType::Diffuse) {
         return "diffuse";
-    } else if (type == Specular) {
+    } else if (type == TexType::Specular) {
         return "specular";
-    } else if (type == Normal) {
+    } else if (type == TexType::Normal) {
         return "normal";
     } else {
         LOG("unable to convert TexType to string, type unknown")

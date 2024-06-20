@@ -2,6 +2,13 @@
 
 #include "pch.h"
 
+const float Camera::default_mouse_sensitivity = 0.1f;
+const float Camera::default_joystick_sensitivity = 1.0f;
+const float Camera::default_zoom = 45.0f;
+const float Camera::default_pitch = 0.0f;
+const float Camera::default_yaw = -90.0f;
+const glm::vec3 Camera::world_up = glm::normalize(glm::vec3(0.0f, 1.0f, 0.0f));
+
 Camera::Camera(const glm::vec3& position, const float yaw, const float pitch) :
 	mouse_sensitivity(default_mouse_sensitivity),
 	joystick_sensitivity(default_joystick_sensitivity),
@@ -31,28 +38,28 @@ glm::mat4 Camera::getViewMatrix() const
 
 void Camera::processMovement(const Movement direction, const float velocity)
 {
-	if (direction == moveForward)
+	if (direction == Movement::Forward)
 		position += front * velocity;
-	if (direction == moveBackward)
+	if (direction == Movement::Backward)
 		position -= front * velocity;
-	if (direction == moveLeft)
+	if (direction == Movement::Left)
 		position -= right * velocity;
-	if (direction == moveRight)
+	if (direction == Movement::Right)
 		position += right * velocity;
-	if (direction == moveUp)
+	if (direction == Movement::Up)
 		position += up * velocity;
-	if (direction == moveDown)
+	if (direction == Movement::Down)
 		position -= up * velocity;
 }
 
-void Camera::processMouseRotation(const float x_offset, const float y_offset, const GLboolean constrain_pitch)
+void Camera::processMouseRotation(const float x_offset, const float y_offset, const bool constrain_pitch)
 {
-	processRotation(x_offset, y_offset, constrain_pitch, mouse_sensitivity);
+	processRotation(x_offset, y_offset, (GLboolean)constrain_pitch, mouse_sensitivity);
 }
 
-void Camera::processJoystickRotation(const float x_offset, const float y_offset, const GLboolean constrain_pitch)
+void Camera::processJoystickRotation(const float x_offset, const float y_offset, const bool constrain_pitch)
 {
-	processRotation(x_offset, y_offset, constrain_pitch, joystick_sensitivity);
+	processRotation(x_offset, y_offset, (GLboolean)constrain_pitch, joystick_sensitivity);
 }
 
 void Camera::processZoom(float y_offset)
@@ -93,7 +100,7 @@ void Camera::updateCameraVectors()
 	up = glm::normalize(glm::cross(right, front));
 }
 
-void Camera::processRotation(const float x_offset, const float y_offset, const GLboolean constrain_pitch, const float sensitivity)
+void Camera::processRotation(const float x_offset, const float y_offset, const bool constrain_pitch, const float sensitivity)
 {
 	yaw += x_offset * sensitivity;
 	pitch += y_offset * sensitivity;

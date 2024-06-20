@@ -8,4 +8,6 @@ target_sources(opengl_practice PRIVATE
                 light_block.cpp
                 utils.cpp
                 world.cpp
+                component.cpp
+                system_utils.cpp
                 )

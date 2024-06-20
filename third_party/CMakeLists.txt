@@ -32,14 +32,18 @@ target_link_libraries(opengl_practice PRIVATE glm::glm)
 target_include_directories(opengl_practice PRIVATE ./stb)
 
 # assimp
-set(ASSIMP_BUILD_TESTS OFF)
-set(ASSIMP_INSTALL OFF)
-set(ASSIMP_NO_EXPORT ON)
-set(ASSIMP_INJECT_DEBUG_POSTFIX OFF)
-set(ASSIMP_INSTALL_PDB OFF)
-set(USE_STATIC_CRT ON)
-set(ASSIMP_BUILD_ASSIMP_VIEW OFF)
-set(ASSIMP_IGNORE_GIT_HASH ON)
+set(ASSIMP_BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+set(ASSIMP_NO_EXPORT ON CACHE BOOL "" FORCE)
+set(ASSIMP_BUILD_ALL_EXPORTERS_BY_DEFAULT OFF CACHE BOOL "" FORCE)
+set(ASSIMP_BUILD_ALL_IMPORTERS_BY_DEFAULT OFF CACHE BOOL "" FORCE)
+set(ASSIMP_BUILD_OBJ_IMPORTER ON CACHE BOOL "" FORCE)
+set(ASSIMP_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(ASSIMP_INSTALL OFF CACHE BOOL "" FORCE)
+set(ASSIMP_INJECT_DEBUG_POSTFIX OFF CACHE BOOL "" FORCE)
+set(ASSIMP_IGNORE_GIT_HASH ON CACHE BOOL "" FORCE)
+set(ASSIMP_INSTALL_PDB OFF CACHE BOOL "" FORCE)
+set(USE_STATIC_CRT ON CACHE BOOL "" FORCE)
+set(ASSIMP_BUILD_ASSIMP_VIEW OFF CACHE BOOL "" FORCE)
 add_subdirectory(assimp)
 target_link_libraries(opengl_practice PRIVATE assimp)
 
@@ -73,6 +77,9 @@ target_link_libraries(opengl_practice PRIVATE EnTT)
 
 #perlin noise
 target_include_directories(opengl_practice PRIVATE ./PerlinNoise)
+
+#cereal
+target_include_directories(opengl_practice PRIVATE ./cereal/include)
 
 # reset dev warning variable after building third party libraries
 set(CMAKE_SUPPRESS_DEVELOPER_WARNINGS ${no_dev_warnings_backup} CACHE INTERNAL "" FORCE)

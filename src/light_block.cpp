@@ -1,7 +1,7 @@
 #include "light_block.h"
 
 #include "pch.h"
-#include "shader_lights.h"
+#include "light_uniform_buffer.h"
 #include "utils.h"
 
 #include <vector>
@@ -43,6 +43,12 @@ LightBlock::~LightBlock()
 {
 	deallocate();
 }
+
+const std::string LightBlock::light_uniform_buffer_path{"./glsl/include/light_uniform_buffer.h"};
+const std::string LightBlock::directional_light_macro{"#define NUM_DIRECTIONAL_LIGHTS"};
+const std::string LightBlock::spot_light_macro{"#define NUM_SPOT_LIGHTS"};
+const std::string LightBlock::point_light_macro{"#define NUM_POINT_LIGHTS"};
+const std::string LightBlock::block_name{STRINGIFY(UNIFORM_BUFFER_TYPE)};
 
 std::shared_ptr<LightBlock> LightBlock::makeShared(const size_t num_directional_lights, const size_t num_spot_lights, const size_t num_point_lights) {
 	return std::shared_ptr<LightBlock>{new LightBlock{num_directional_lights, num_spot_lights, num_point_lights}};
@@ -87,7 +93,7 @@ bool LightBlock::updateDirection(const LightType type, const size_t index, const
 	size_t offset{0};
 	switch (type)
 	{
-		case Directional:
+		case LightType::Directional:
 			if (index > uni_buff.directional_lights.size()) {
 				LOG("Unable to update light direction, invalid index")
 				return false;
@@ -97,7 +103,7 @@ bool LightBlock::updateDirection(const LightType type, const size_t index, const
 			+ offsetof(decltype(uni_buff.directional_lights)::value_type, dir)
 			+ (sizeof(DirectionalLight) * index);
 			break;
-		case Spot:
+		case LightType::Spot:
 			if (index > uni_buff.spot_lights.size()) {
 				LOG("Unable to update light direction, invalid index")
 				return false;
@@ -107,7 +113,7 @@ bool LightBlock::updateDirection(const LightType type, const size_t index, const
 			+ offsetof(decltype(uni_buff.spot_lights)::value_type, dir)
 			+ (sizeof(SpotLight) * index);
 			break;
-		case Point:
+		case LightType::Point:
 			LOG("Unable to update light direction, light type doesn't have a direction")
 			return false;
 			break;
@@ -128,7 +134,7 @@ bool LightBlock::updateColor(const LightType type, const size_t index, const Lig
 	size_t offset{0};
 	switch (type)
 	{
-		case Directional:
+		case LightType::Directional:
 			if (index > uni_buff.directional_lights.size()) {
 				LOG("Unable to update light color, invalid index")
 				return false;
@@ -139,7 +145,7 @@ bool LightBlock::updateColor(const LightType type, const size_t index, const Lig
 				+ (sizeof(DirectionalLight) * index);
 			return false;
 			break;
-		case Spot:
+		case LightType::Spot:
 			if (index > uni_buff.spot_lights.size()) {
 				LOG("Unable to update light color, invalid index")
 				return false;
@@ -149,7 +155,7 @@ bool LightBlock::updateColor(const LightType type, const size_t index, const Lig
 				+ offsetof(decltype(uni_buff.spot_lights)::value_type, color)
 				+ (sizeof(SpotLight) * index);
 			break;
-		case Point:
+		case LightType::Point:
 			if (index > uni_buff.point_lights.size()) {
 				LOG("Unable to update light color, invalid index")
 				return false;
@@ -176,12 +182,12 @@ bool LightBlock::updatePosition(const LightType type, const size_t index, const 
 	size_t offset{0};
 	switch (type)
 	{
-		case Directional:
+		case LightType::Directional:
 			LOG("Unable to update light position, light type doesn't have a position")
 			return false;
 			break;
 
-		case Spot:
+		case LightType::Spot:
 			if (index > uni_buff.spot_lights.size()) {
 				LOG("Unable to update light position, invalid index")
 				return false;
@@ -191,7 +197,7 @@ bool LightBlock::updatePosition(const LightType type, const size_t index, const 
 				+ offsetof(decltype(uni_buff.spot_lights)::value_type, pos)
 				+ (sizeof(SpotLight) * index);
 			break;
-		case Point:
+		case LightType::Point:
 			if (index > uni_buff.point_lights.size()) {
 				LOG("Unable to update light position, invalid index")
 				return false;
@@ -326,20 +332,15 @@ void LightBlock::addLight(PointLight&& light)
 
 bool LightBlock::genShaderCode()
 {
-	std::string light_struct_code;
 	std::string light_uniform_buffer_code;
 	std::string cur_shader_code;
 
-	if (!utils::readFile(light_struct_path, light_struct_code)) {
-		LOG("Failed to read light struct code");
-		return false;
-	}
 	if (!utils::readFile(light_uniform_buffer_path, light_uniform_buffer_code)) {
 		LOG("Failed to read light uniform buffer code");
 		return false;
 	}
 
-	cur_shader_code = "\n" + light_struct_code + "\n" + light_uniform_buffer_code + "\n";
+	cur_shader_code = "\n" + light_uniform_buffer_code + "\n";
 
 	if (!replaceMacro(cur_shader_code, directional_light_macro, std::to_string(uni_buff.directional_lights.size()))) {
 		LOG("Failed to replace directional light macro");

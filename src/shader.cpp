@@ -4,6 +4,7 @@
 #include "utils.h"
 #include "light_block.h"
 
+#include <unordered_set>
 #include <memory>
 
 Shader::Shader() : id(0) {}
@@ -36,10 +37,10 @@ bool Shader::setShaderCode(const std::string& vertex_path, const std::string& fr
 {
 	bool success = true;
 
-	success &= setShaderCode(Vertex, vertex_path);
-	success &= setShaderCode(Fragment, fragment_path);
+	success &= setShaderCode(ProgramType::Vertex, vertex_path);
+	success &= setShaderCode(ProgramType::Fragment, fragment_path);
 	if (!geometry_path.empty()) {
-		success &= setShaderCode(Geometry, geometry_path);
+		success &= setShaderCode(ProgramType::Geometry, geometry_path);
 	}
 
 	if (!success) {
@@ -57,17 +58,17 @@ bool Shader::setShaderCode(const ProgramType type, const std::string& code_path_
 	std::string* code_path = nullptr;
 	unsigned int* num_injected_lines = nullptr;
 	switch (type) {
-		case Vertex:
+		case ProgramType::Vertex:
 			code = &vertex_code;
 			code_path = &vertex_path;
 			num_injected_lines = &vertex_num_injected;
 			break;
-		case Fragment:
+		case ProgramType::Fragment:
 			code = &fragment_code;
 			code_path = &fragment_path;
 			num_injected_lines = &fragment_num_injected;
 			break;
-		case Geometry:
+		case ProgramType::Geometry:
 			code = &geometry_code;
 			code_path = &geometry_path;
 			num_injected_lines = &geometry_num_injected;
@@ -97,17 +98,17 @@ void Shader::resetShaderCode(const ProgramType type)
 	std::string* code_path = nullptr;
 	unsigned int* num_injected_lines = nullptr;
 	switch (type) {
-		case Vertex:
+		case ProgramType::Vertex:
 			code = &vertex_code;
 			code = &vertex_path;
 			num_injected_lines = &vertex_num_injected;
 			break;
-		case Fragment:
+		case ProgramType::Fragment:
 			code = &fragment_code;
 			code = &fragment_path;
 			num_injected_lines = &fragment_num_injected;
 			break;
-		case Geometry:
+		case ProgramType::Geometry:
 			code = &geometry_code;
 			code = &geometry_path;
 			num_injected_lines = &geometry_num_injected;
@@ -155,15 +156,15 @@ bool Shader::addLights(const ProgramType type, std::shared_ptr<LightBlock> light
 	std::string* code = nullptr;
 	unsigned int* num_injected_lines = nullptr;
 	switch (type) {
-		case Vertex:
+		case ProgramType::Vertex:
 			code = &vertex_code;
 			num_injected_lines = &vertex_num_injected;
 			break;
-		case Fragment:
+		case ProgramType::Fragment:
 			code = &fragment_code;
 			num_injected_lines = &fragment_num_injected;
 			break;
-		case Geometry:
+		case ProgramType::Geometry:
 			code = &geometry_code;
 			num_injected_lines = &geometry_num_injected;
 			break;
@@ -194,14 +195,14 @@ bool Shader::compile()
 	bool success = true;
 
 	id = glCreateProgram();
-	success &= compileAndAttach(vertex_code, Vertex);
-	success &= compileAndAttach(fragment_code, Fragment);
+	success &= compileAndAttach(vertex_code, ProgramType::Vertex);
+	success &= compileAndAttach(fragment_code, ProgramType::Fragment);
 	if (!geometry_code.empty()) {
-		success &= compileAndAttach(geometry_code, Geometry);
+		success &= compileAndAttach(geometry_code, ProgramType::Geometry);
 	}
 
 	glLinkProgram(id);
-	success &= checkCompileErrors(id, Linker);
+	success &= checkCompileErrors(id, ProgramType::Linker);
 
 	if (light_block) {
 		GLuint light_block_index = glGetUniformBlockIndex(id, light_block->getName().c_str());
@@ -298,11 +299,11 @@ bool Shader::compileAndAttach(const std::string& code, const ProgramType type) c
 
 	unsigned int shader_id;
 	switch (type) {
-		case Vertex:
+		case ProgramType::Vertex:
 			shader_id = glCreateShader(GL_VERTEX_SHADER); break;
-		case Fragment:
+		case ProgramType::Fragment:
 			shader_id = glCreateShader(GL_FRAGMENT_SHADER); break;
-		case Geometry:
+		case ProgramType::Geometry:
 			shader_id = glCreateShader(GL_GEOMETRY_SHADER); break;
 		default:
 			LOG("Shader program not recognized")
@@ -321,13 +322,13 @@ bool Shader::compileAndAttach(const std::string& code, const ProgramType type) c
 
 std::string Shader::programTypeToString(const ProgramType type) const {
 	switch (type) {
-		case Vertex:
+		case ProgramType::Vertex:
 			return std::string("Vertex"); break;
-		case Fragment:
+		case ProgramType::Fragment:
 			return std::string("Fragment"); break;
-		case Geometry:
+		case ProgramType::Geometry:
 			return std::string("Geometry"); break;
-		case Linker:
+		case ProgramType::Linker:
 			return std::string("Linker"); break;
 		default:
 			return std::string("Unknown");
@@ -339,20 +340,20 @@ bool Shader::checkCompileErrors(const GLuint shader, const ProgramType type) con
 	GLint success = true;
 	static const GLsizei max_size = 1024;
 	GLchar info_log[max_size];
-	if (type != Linker) {
+	if (type != ProgramType::Linker) {
 		glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
 		glGetShaderInfoLog(shader, max_size, NULL, info_log);
 		updateLineNumbers(info_log, max_size, type);
 		const std::string* code_path = nullptr;
 		const std::string* code = nullptr;
 		switch (type) {
-			case Vertex:
+			case ProgramType::Vertex:
 			code = &vertex_code;
 				code_path = &vertex_path; break;
-			case Fragment:
+			case ProgramType::Fragment:
 			code = &fragment_code;
 				code_path = &fragment_path; break;
-			case Geometry:
+			case ProgramType::Geometry:
 			code = &geometry_code;
 				code_path = &geometry_path; break;
 			default:
@@ -379,9 +380,9 @@ bool Shader::updateLineNumbers(GLchar* log, const GLsizei max_size, const Progra
 {
 	int num_injected_lines = 0;
 	switch (type) {
-		case Vertex: num_injected_lines = vertex_num_injected; break;
-		case Fragment: num_injected_lines = fragment_num_injected; break;
-		case Geometry: num_injected_lines = geometry_num_injected; break;
+		case ProgramType::Vertex: num_injected_lines = vertex_num_injected; break;
+		case ProgramType::Fragment: num_injected_lines = fragment_num_injected; break;
+		case ProgramType::Geometry: num_injected_lines = geometry_num_injected; break;
 		default:
 			LOG("Unable to update log line numbers, program type invalid")
 			return false;

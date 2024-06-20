@@ -5,7 +5,11 @@
 #include <string>
 #include <fstream>
 #include <sstream>
+#include <iostream>
 #include <utility>
+#include <cstdio>
+#include <random>
+#include <array>
 
 #include "glad/gl.h"
 
@@ -14,7 +18,6 @@
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtc/type_ptr.hpp"
-#include "glm/ext/vector_relational.hpp"
 
 #include "assimp/Importer.hpp"
 #include "assimp/scene.h"
@@ -27,8 +30,11 @@
 
 #include "stb_image.h"
 
-#include "entt/entt.hpp"
+#include "entt/entity/registry.hpp"
+#include "entt/entity/snapshot.hpp"
 
 #include "PerlinNoise.hpp"
+
+#include "cereal/archives/binary.hpp"
 
 #endif

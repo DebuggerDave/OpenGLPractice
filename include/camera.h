@@ -1,24 +1,23 @@
 #ifndef CAMERA_H
 #define CAMERA_H
 
-#include "glm/glm.hpp"
-
-#include <vector>
+#include "glm/ext/vector_float3.hpp"
+struct GLFWwindow;
 
 // Process input and Calculate the corresponding Euler Angles, Vectors and Matrices for use in OpenGL
 class Camera
 {
 public:
-	enum Movement {
-		moveForward,
-		moveBackward,
-		moveLeft,
-		moveRight,
-		moveUp,
-		moveDown
+	enum class Movement {
+		Forward,
+		Backward,
+		Left,
+		Right,
+		Up,
+		Down
 	};
 
-	Camera(const glm::vec3& position=glm::vec3(0.0f, 0.0f, 0.0f), const float yaw=default_yaw, const float pitch=default_pitch);
+	Camera(const glm::vec3& position, const float yaw=default_yaw, const float pitch=default_pitch);
 	Camera(const float x=0, const float y=0, const float z=0, const float yaw=default_yaw, const float pitch=default_pitch);
 
 	// Returns the view matrix calculated using Euler Angles and the LookAt Matrix
@@ -26,9 +25,9 @@ public:
 	// Move in direction indicated by direction param
 	void processMovement(const Movement direction, const float delta_time);
 	// Process rotation with mouse parameters
-	void processMouseRotation(const float x_offset, const float y_offset, const GLboolean constrain_pitch=true);
+	void processMouseRotation(const float x_offset, const float y_offset, const bool constrain_pitch=true);
 	// Process rotation with joystick parameters
-	void processJoystickRotation(const float x_offset, const float y_offset, const GLboolean constrain_pitch=true);
+	void processJoystickRotation(const float x_offset, const float y_offset, const bool constrain_pitch=true);
 	// Processes input received from a mouse scroll-wheel event. Only requires input on the vertical wheel-axis
 	void processZoom(const float y_offset);
 
@@ -38,13 +37,12 @@ public:
 	float getZoom() const;
 
 private:
-	// default values
-	inline static const float default_mouse_sensitivity = 0.1f;
-	inline static const float default_joystick_sensitivity = 1.0f;
-	inline static const float default_zoom = 45.0f;
-	inline static const float default_pitch = 0.0f;
-	inline static const float default_yaw = -90.0f;
-	inline static const glm::vec3 world_up = glm::normalize(glm::vec3(0.0f, 1.0f, 0.0f));
+	static const float default_mouse_sensitivity;
+	static const float default_joystick_sensitivity;
+	static const float default_zoom;
+	static const float default_pitch;
+	static const float default_yaw;
+	static const glm::vec3 world_up;
 	// Camera Attributes
 	glm::vec3 position;
 	glm::vec3 front;
@@ -61,6 +59,6 @@ private:
 	// Calculates the front vector from the Camera's (updated) Euler Angles
 	void updateCameraVectors();
 	// Adjust yaw and pitch based on x and y movement
-	void processRotation(const float x_offset, const float y_offset, const GLboolean constrain_pitch, const float sensitivity);
+	void processRotation(const float x_offset, const float y_offset, const bool constrain_pitch, const float sensitivity);
 };
 #endif

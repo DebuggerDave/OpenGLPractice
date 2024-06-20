@@ -1,10 +1,10 @@
 #ifndef MESH_H
 #define MESH_H
 
-#include "glm/glm.hpp"
+#include "glm/fwd.hpp"
 
 #include <vector>
-#include <string>
+#include <iosfwd>
 
 class Shader;
 
@@ -16,7 +16,7 @@ class Mesh {
             glm::vec2 TexCoords;
         };
 
-        enum TexType {
+        enum class TexType {
             Diffuse,
             Specular,
             Normal,
