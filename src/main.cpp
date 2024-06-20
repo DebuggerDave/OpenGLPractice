@@ -66,10 +66,10 @@ int main()
 
 	World world;
 
-	static Model floor_model("./assets/other_3d/floor.obj");
 	static Model grass("./assets/other_3d/grass.obj");
+	static Model dirt("./assets/other_3d/dirt.obj");
+	static Model cobblestone("./assets/other_3d/cobblestone.obj");
 	static Model cube("./assets/other_3d/cube.obj");
-	//static Model backpack("./assets/backpack/backpack.obj");
 
 	std::shared_ptr<LightBlock> light_block = LightBlock::makeShared(1, 1, 1);
 	LightColor black{glm::vec4{0.0f}, glm::vec4(0.0f), glm::vec4(0.0f)};

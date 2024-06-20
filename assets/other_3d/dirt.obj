@@ -1,6 +1,6 @@
-# Blender v2.91.0 OBJ File: 'grass.blend'
+# Blender v2.91.0 OBJ File: 'dirt.blend'
 # www.blender.org
-mtllib grass.mtl
+mtllib dirt.mtl
 o Cube
 v 0.500000 0.500000 -0.500000
 v 0.500000 -0.500000 -0.500000
@@ -32,7 +32,7 @@ vn -1.0000 0.0000 0.0000
 vn 0.0000 -1.0000 0.0000
 vn 1.0000 0.0000 0.0000
 vn 0.0000 0.0000 -1.0000
-usemtl grass
+usemtl dirt
 s off
 f 1/1/1 5/2/1 7/3/1 3/4/1
 f 4/5/2 3/4/2 7/3/2 8/6/2
