@@ -11,7 +11,8 @@ struct Position
 	glm::vec3 data;
 };
 
-enum class BlockId {
+enum class BlockId
+{
 	Grass,
 	Dirt,
 	Cobblestone

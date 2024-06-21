@@ -6,22 +6,17 @@
 
 #include <vector>
 
-Mesh::Mesh() :
-    VAO(0), VBO(0), EBO(0)
-{}
-
-
 Mesh::Mesh(const std::vector<Vertex>& vertices, const std::vector<unsigned int>& indices, const std::vector<Texture>& textures) :
     VAO(0), VBO(0), EBO(0),
     vertices(vertices), indices(indices), textures(textures)
 {
-    setupMesh();
+    if (readyForSetup()) {
+        setupMesh();
+    }
 }
 
 Mesh::~Mesh() {
-    glDeleteVertexArrays(1, &VAO);
-	glDeleteBuffers(1, &VBO);
-    glDeleteBuffers(1, &EBO);
+    free();
 }
 
 Mesh::Mesh(Mesh&& other) noexcept :
@@ -35,9 +30,7 @@ Mesh::Mesh(Mesh&& other) noexcept :
 
 Mesh& Mesh::operator=(Mesh&& other) noexcept
 {
-    glDeleteVertexArrays(1, &VAO);
-	glDeleteBuffers(1, &VBO);
-    glDeleteBuffers(1, &EBO);
+    free();
 
     vertices = std::move(other.vertices);
     indices = std::move(other.indices);
@@ -50,7 +43,7 @@ Mesh& Mesh::operator=(Mesh&& other) noexcept
     return *this;
 }
 
-void Mesh::Draw(const Shader& shader) const
+void Mesh::draw(const Shader& shader) const
 {
     // textures
     if (textures.size() > GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS) {
@@ -121,4 +114,10 @@ void Mesh::setupMesh()
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, TexCoords));
 
     glBindVertexArray(0);
+}
+
+void Mesh::free() {
+    glDeleteVertexArrays(1, &VAO);
+    glDeleteBuffers(1, &VBO);
+    glDeleteBuffers(1, &EBO);
 }

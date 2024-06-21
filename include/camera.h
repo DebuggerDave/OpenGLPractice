@@ -2,6 +2,7 @@
 #define CAMERA_H
 
 #include "glm/ext/vector_float3.hpp"
+#include "glm/fwd.hpp"
 struct GLFWwindow;
 
 // Process input and Calculate the corresponding Euler Angles, Vectors and Matrices for use in OpenGL

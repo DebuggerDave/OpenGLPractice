@@ -68,7 +68,7 @@ private:
 	// convert shader program type data
 	std::string programTypeToString(const ProgramType type) const;
 	// update the line numbers in logs to account for the injected shader code
-	bool updateLineNumbers(GLchar* log, const GLsizei max_size, const ProgramType type) const;
+	bool updateLineNumbers(char* log, const size_t max_size, const ProgramType type) const;
 	// inject code after '#version' statement in shader
 	bool injectCode(std::string &source_code, const std::string& injectible_code, unsigned int& num_injected_lines) const;
 

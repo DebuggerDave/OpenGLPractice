@@ -118,8 +118,8 @@ void Shader::resetShaderCode(const ProgramType type)
 			return;
 	}
 
-	*code = {};
-	*code_path = {};
+	*code = std::string{};
+	*code_path = std::string{};
 	*num_injected_lines = 0;
 	lit_programs.erase(type);
 	if (lit_programs.empty()) {
@@ -208,7 +208,7 @@ bool Shader::compile()
 		GLuint light_block_index = glGetUniformBlockIndex(id, light_block->getName().c_str());
 		GLint actual_light_block_size{0};
 		glGetActiveUniformBlockiv(id, light_block_index, GL_UNIFORM_BLOCK_DATA_SIZE, &actual_light_block_size);
-		if (light_block->byteSize() != actual_light_block_size) {
+		if (light_block->byteSize() != (size_t)actual_light_block_size) {
 			LOG("Light block sizes do not match")
 			success = false;
 		}
@@ -342,41 +342,36 @@ bool Shader::checkCompileErrors(const GLuint shader, const ProgramType type) con
 	GLchar info_log[max_size];
 	if (type != ProgramType::Linker) {
 		glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
-		glGetShaderInfoLog(shader, max_size, NULL, info_log);
-		updateLineNumbers(info_log, max_size, type);
-		const std::string* code_path = nullptr;
-		const std::string* code = nullptr;
-		switch (type) {
-			case ProgramType::Vertex:
-			code = &vertex_code;
-				code_path = &vertex_path; break;
-			case ProgramType::Fragment:
-			code = &fragment_code;
-				code_path = &fragment_path; break;
-			case ProgramType::Geometry:
-			code = &geometry_code;
-				code_path = &geometry_path; break;
-			default:
-				LOG("Failed to get debug path data, invalid program type")
-		}
 		if (!success) {
+			glGetShaderInfoLog(shader, max_size, NULL, info_log);
+			updateLineNumbers((char*)info_log, (size_t)max_size, type);
+			const std::string* code_path = nullptr;
+			switch (type) {
+				case ProgramType::Vertex:
+					code_path = &vertex_path; break;
+				case ProgramType::Fragment:
+					code_path = &fragment_path; break;
+				case ProgramType::Geometry:
+					code_path = &geometry_path; break;
+				default:
+					LOG("Failed to get debug path data, invalid program type")
+			}
 			LOG("\nFailed to compile the " << programTypeToString(type) << " shader at path " << *code_path)
 		}
 	}
 	else {
 		glGetProgramiv(shader, GL_LINK_STATUS, &success);
-		glGetProgramInfoLog(shader, max_size, NULL, info_log);
 		if (!success) {
+			glGetProgramInfoLog(shader, max_size, NULL, info_log);
 			LOG("\nFailed to Link the shader program")
 		}
 	}
 
-	utils::err() << info_log;
-
+	if (!success) { utils::err() << info_log; }
 	return success;
 }
 
-bool Shader::updateLineNumbers(GLchar* log, const GLsizei max_size, const ProgramType type) const
+bool Shader::updateLineNumbers(char* log, const size_t max_size, const ProgramType type) const
 {
 	int num_injected_lines = 0;
 	switch (type) {

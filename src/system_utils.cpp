@@ -105,7 +105,8 @@ void processGamepadInput(GLFWwindow *window, float delta_time, Camera& camera)
 
 	if (USE_GAMEPAD) {
 		GLFWgamepadstate state;
-		for (int i=0; i<joystick_ids.size(); i++) {
+		using joystickIdsSizeType = decltype(joystick_ids)::size_type;
+		for (joystickIdsSizeType i=0; i<joystick_ids.size(); i++) {
 			static const float min_dead_zone = 0.1f;
 			bool moved = false;
 			float velocity = BASE_SPEED * delta_time;
@@ -206,7 +207,7 @@ unsigned int loadCubemap(const std::vector<std::string>& faces)
         unsigned char *data = stbi_load(faces[i].c_str(), &width, &height, &num_components, 0);
         if (data)
         {
-			GLenum format;
+			GLenum format = GL_RGBA;
 			if (num_components == 1)
 				format = GL_RED;
 			else if (num_components == 3)
@@ -252,10 +253,10 @@ void renderScene(const glm::mat4& view, const glm::mat4& projection, const Shade
 		shader.setMat4("model", model);
 		shader.setMat3("normal_mat", normal_mat);
 		if (block_id == BlockId::Grass) {
-			grass.Draw(shader);
+			grass.draw(shader);
 		}
 		else if (block_id == BlockId::Dirt) {
-			dirt.Draw(shader);
+			dirt.draw(shader);
 		}
 	}
 }

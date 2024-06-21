@@ -3,6 +3,13 @@ project(OpenGLPractice)
 set (CMAKE_CXX_STANDARD 20)
 set (CMAKE_CXX_STANDARD_REQUIRED ON)
 
+add_compile_options(
+       -Wall -Werror
+       $<$<CONFIG:RELEASE>:-Ofast>
+       $<$<CONFIG:DEBUG>:-O0>
+       $<$<CONFIG:DEBUG>:-ggdb3>
+)
+
 add_executable(opengl_practice)
 
 add_subdirectory(src)

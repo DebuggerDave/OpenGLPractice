@@ -10,26 +10,19 @@ const float Camera::default_yaw = -90.0f;
 const glm::vec3 Camera::world_up = glm::normalize(glm::vec3(0.0f, 1.0f, 0.0f));
 
 Camera::Camera(const glm::vec3& position, const float yaw, const float pitch) :
-	mouse_sensitivity(default_mouse_sensitivity),
-	joystick_sensitivity(default_joystick_sensitivity),
-	zoom(default_zoom),
 	position(position),
 	yaw(yaw),
-	pitch(pitch)
+	pitch(pitch),
+	mouse_sensitivity(default_mouse_sensitivity),
+	joystick_sensitivity(default_joystick_sensitivity),
+	zoom(default_zoom)
 {
 	updateCameraVectors();
 }
 
 Camera::Camera(const float x, const float y, const float z, const float yaw, const float pitch) :
-	mouse_sensitivity(default_mouse_sensitivity),
-	joystick_sensitivity(default_joystick_sensitivity),
-	zoom(default_zoom),
-	position(glm::vec3(x, y, z)),
-	yaw(yaw),
-	pitch(pitch)
-{
-	updateCameraVectors();
-}
+	Camera(glm::vec3(x, y, z), yaw, pitch)
+{}
 
 glm::mat4 Camera::getViewMatrix() const
 {

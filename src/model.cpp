@@ -12,10 +12,10 @@ Model::Model(const std::string& path)
 	loadModel(path);
 }
 
-void Model::Draw(const Shader& shader) const
+void Model::draw(const Shader& shader) const
 {
     for(unsigned int i = 0; i < meshes.size(); i++) {
-        meshes[i].Draw(shader);
+        meshes[i].draw(shader);
 	}
 }
 
@@ -115,7 +115,6 @@ std::vector<Mesh::Texture> Model::processTextures(const aiMesh* mesh, const aiSc
 {
     std::vector<Mesh::Texture> textures;
 
-    const unsigned int matIndex = mesh->mMaterialIndex;
 	if(mesh->mMaterialIndex >= 0)
 	{
 		aiMaterial *material = scene->mMaterials[mesh->mMaterialIndex];
@@ -170,12 +169,12 @@ std::vector<Mesh::Texture> Model::loadMaterialTextures(const aiMaterial* mat, co
     return textures;
 }
 
-void Model::createTex(unsigned int& tex_id, const unsigned char* data, const int width, const int height, const int num_components, const Mesh::TexType type) {
+void Model::createTex(unsigned int& tex_id, const unsigned char* data, const unsigned int width, const unsigned int height, const unsigned int num_components, const Mesh::TexType type) {
     glGenTextures(1, &tex_id);
     static const unsigned int pixel_art_threshold = 64;
 
-    GLenum format;
-    GLenum internal_format;
+    GLenum format = GL_RGBA;
+    GLenum internal_format = format;
     if (num_components == 1) {
         format = GL_RED;
         internal_format = GL_RED;

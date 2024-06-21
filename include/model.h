@@ -9,6 +9,7 @@ class aiNode;
 class aiScene;
 class aiMesh;
 class aiMaterial;
+#include "glm/fwd.hpp"
 
 #include <string>
 #include <vector>
@@ -18,7 +19,7 @@ class Model
 {
     public:
         Model(const std::string& path);
-        void Draw(const Shader& shader) const;
+        void draw(const Shader& shader) const;
 
     private:
         // all loaded meshed from the 3d model
@@ -45,7 +46,7 @@ class Model
         // load textures from material into memory
         std::vector<Mesh::Texture> loadMaterialTextures(const aiMaterial* mat, const aiTextureType ai_type, const Mesh::TexType type);
         // create texture from image data
-        void createTex(unsigned int& tex_id, const unsigned char* data, const int width, const int height, const int num_component, const Mesh::TexType types);
+        void createTex(unsigned int& tex_id, const unsigned char* data, const unsigned int width, const unsigned int height, const unsigned int num_component, const Mesh::TexType types);
         // create texture from file path
         bool texFromFile(const std::string& filename, unsigned int& tex_id, const Mesh::TexType type);
 };

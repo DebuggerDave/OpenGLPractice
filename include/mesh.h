@@ -2,6 +2,7 @@
 #define MESH_H
 
 #include "glm/fwd.hpp"
+#include "glad/gl.h"
 
 #include <vector>
 #include <iosfwd>
@@ -28,15 +29,17 @@ class Mesh {
             TexType type;
         };
 
-        Mesh();
-        Mesh(const std::vector<Vertex>& vertices, const std::vector<unsigned int>& indices, const std::vector<Texture>& textures);
+        Mesh(const std::vector<Vertex>& vertices = std::vector<Vertex>{},
+            const std::vector<unsigned int>& indices = std::vector<unsigned int>{},
+            const std::vector<Texture>& textures = std::vector<Texture>{}
+            );
         ~Mesh();
         Mesh(const Mesh& other) = delete;
         Mesh(Mesh&& other) noexcept;
         Mesh& operator=(const Mesh& other) = delete;
         Mesh& operator=(Mesh&& other) noexcept;
 
-        void Draw(const Shader& shader) const;
+        void draw(const Shader& shader) const;
     private:
         //  render data
         unsigned int VAO, VBO, EBO;
@@ -50,6 +53,7 @@ class Mesh {
         bool readyForSetup() const;
         // initial setup
         void setupMesh();
+        void free();
 };  
 
 #endif

@@ -149,9 +149,11 @@ int main()
 
 		// TODO this stuff is redundant, fix it
 		// point lights
-		for (int i=0; i<light_block->read().point_lights.size(); i++) {
+		const LightBlockData& light_data = light_block->read();
+		using PointLightSizeType = std::remove_cvref_t<decltype(light_data.point_lights)>::size_type;
+		for (PointLightSizeType i=0; i<light_data.point_lights.size(); i++) {
 			glm::vec4 zero(0.0f);
-			PointLight cur_light = light_block->read().point_lights[i];
+			PointLight cur_light = light_data.point_lights[i];
 			if (glm::all(glm::equal(cur_light.pos, glm::vec4(camera.getPosition(), 1.0))) || (
 					(glm::all(glm::equal(cur_light.color.ambient, zero))) &&
 					(glm::all(glm::equal(cur_light.color.diffuse, zero))) &&
@@ -167,13 +169,14 @@ int main()
 			model = glm::scale(model, glm::vec3(0.2f));
 
 			light_shader.setMat4("model", model);
-			cube.Draw(light_shader);
+			cube.draw(light_shader);
 		}
 
 		// spot lights
-		for (int i=0; i<light_block->read().spot_lights.size(); i++) {
+		using SpotLightSizeType = std::remove_cvref_t<decltype(light_data.spot_lights)>::size_type;
+		for (SpotLightSizeType i=0; i<light_data.spot_lights.size(); i++) {
 			glm::vec4 zero(0.0f);
-			SpotLight cur_light = light_block->read().spot_lights[i];
+			SpotLight cur_light = light_data.spot_lights[i];
 			if (glm::all(glm::equal(cur_light.pos, glm::vec4(camera.getPosition(), 1.0))) || (
 					(glm::all(glm::equal(cur_light.color.ambient, zero))) &&
 					(glm::all(glm::equal(cur_light.color.diffuse, zero))) &&
@@ -189,13 +192,14 @@ int main()
 			model = glm::scale(model, glm::vec3(0.2f));
 
 			light_shader.setMat4("model", model);
-			cube.Draw(light_shader);
+			cube.draw(light_shader);
 		}
 
 		// directional lights
-		for (int i=0; i<light_block->read().directional_lights.size(); i++) {
+		using DirLightSizeType = std::remove_cvref_t<decltype(light_data.directional_lights)>::size_type;
+		for (DirLightSizeType i=0; i<light_data.directional_lights.size(); i++) {
 			glm::vec4 zero(0.0f);
-			DirectionalLight cur_light = light_block->read().directional_lights[i];
+			DirectionalLight cur_light = light_data.directional_lights[i];
 			if ((glm::all(glm::equal(cur_light.color.ambient, zero))) &&
 				(glm::all(glm::equal(cur_light.color.diffuse, zero))) &&
 				(glm::all(glm::equal(cur_light.color.specular, zero)))) {
@@ -208,7 +212,7 @@ int main()
 			model = glm::scale(model, glm::vec3(10.0f));
 			
 			light_shader.setMat4("model", model);
-			cube.Draw(light_shader);
+			cube.draw(light_shader);
 		}
 
 		// skybox
@@ -216,7 +220,7 @@ int main()
 		skybox_shader.activate();
 		skybox_shader.setMat4("view", glm::mat4(glm::mat3(view)));
 		skybox_shader.setMat4("projection", projection);
-		cube.Draw(skybox_shader);
+		cube.draw(skybox_shader);
 		glCullFace(GL_BACK);
 
 		ImGui::Render();

@@ -1,7 +1,6 @@
 #ifndef OPENGLPRACTICE_PCH_H
 #define OPENGLPRACTICE_PCH_H
 
-#include <chrono>
 #include <string>
 #include <fstream>
 #include <sstream>
@@ -10,6 +9,7 @@
 #include <cstdio>
 #include <random>
 #include <array>
+#include <type_traits>
 
 #include "glad/gl.h"
 
