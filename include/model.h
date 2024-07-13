@@ -2,14 +2,15 @@
 #define MODEL_H
 
 #include "mesh.h"
+#include "component.h"
 class Shader;
+class World;
 
 // assimp forward decl
 class aiNode;
 class aiScene;
 class aiMesh;
-class aiMaterial;
-#include "glm/fwd.hpp"
+#include "assimp/material.h"
 
 #include <string>
 #include <vector>
@@ -18,8 +19,13 @@ class aiMaterial;
 class Model 
 {
     public:
-        Model(const std::string& path);
-        void draw(const Shader& shader) const;
+        Model(const std::string& path, BlockId id = BlockId::NoneOrNumIDs);
+        // draw number of instances indicated by num, zero draws without instancing
+        void draw(const Shader& shader, const unsigned int num = 0) const;
+        // add a vertex attribute array of vec4s for instance rendering
+        void setupInstancing(const World& world) const;
+
+        const BlockId id;
 
     private:
         // all loaded meshed from the 3d model

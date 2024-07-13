@@ -1,4 +1,3 @@
-#include "pch.h"
 #include "shader.h"
 #include "camera.h"
 #include "model.h"
@@ -9,25 +8,42 @@
 #include "component.h"
 #include "constants.h"
 #include "system_utils.h"
+#include "game_time.h"
+
+#include "glm/vec3.hpp"
+#include "glm/vec4.hpp"
+#include "glm/ext/matrix_clip_space.hpp"
+#include "glm/geometric.hpp"
+#include "glm/trigonometric.hpp"
+#include "glm/gtc/type_ptr.hpp"
+#include "GLFW/glfw3.h"
 
 #include <vector>
 #include <memory>
 
 int main()
 {
-	Camera camera(0, World::terrain_median_height + World::terrain_aplitude, 0);
+	Camera camera(0, World::terrain_median_height + World::terrain_amplitude, 0);
 
 	GLFWwindow* window = init(camera);
-	if (!window) return -1;
+	if (!window) {
+		LOG("Failed to initialize program")
+		return -1;
+	}
 
 	World world;
 
-	static Model grass("./assets/other_3d/grass.obj");
-	static Model dirt("./assets/other_3d/dirt.obj");
-	static Model cobblestone("./assets/other_3d/cobblestone.obj");
-	static Model cube("./assets/other_3d/cube.obj");
+	std::vector<Model> models;
+	models.push_back(Model("./assets/other_3d/grass.obj", BlockId::Grass));
+	models.push_back(Model("./assets/other_3d/dirt.obj", BlockId::Dirt));
+	models.push_back(Model("./assets/other_3d/cobblestone.obj", BlockId::Cobblestone));
+	Model cube("./assets/other_3d/cube.obj");
+	
+	for (const Model& model : models) {
+		model.setupInstancing(world);
+	}
 
-	std::shared_ptr<LightBlock> light_block = LightBlock::makeShared(1, 1, 1);
+	std::shared_ptr<LightBlock> light_block = LightBlock::makeShared();
 	LightColor black{glm::vec4{0.0f}, glm::vec4(0.0f), glm::vec4(0.0f)};
 	light_block->updateColor(LightBlock::LightType::Spot, 0, black);
 	light_block->updateColor(LightBlock::LightType::Point, 0, black);
@@ -41,8 +57,6 @@ int main()
 	Shader default_shader("./glsl/default.vert", "./glsl/default.frag");
 	default_shader.addLights(Shader::ProgramType::Fragment, light_block);
 	default_shader.compile();
-	//Shader normal_shader("./glsl/normal.vert", "./glsl/normal.frag", "./glsl/normal.geom");
-	//normal_shader.compile();
 	Shader shadow_shader("./glsl/shadow.vert", "./glsl/shadow.frag");
 	shadow_shader.compile();
 
@@ -88,20 +102,20 @@ int main()
 
 	float delta_time = 0.0f;
 	float last_frame_time = 0.0f;
+	GameTime time(glfwGetTime());
 	// render loop
 	while (!glfwWindowShouldClose(window))
 	{
-		ImGui_ImplOpenGL3_NewFrame();
-		ImGui_ImplGlfw_NewFrame();
-		ImGui::NewFrame();
-		showImgui(*light_block);
-
 		// per-frame time logic
-		float current_frame_time = glfwGetTime();
-		delta_time = current_frame_time - last_frame_time;
-		last_frame_time = current_frame_time;
+		float frame_time = glfwGetTime();
+		delta_time = frame_time - last_frame_time;
+		last_frame_time = frame_time;
+
 		// input
 		processInput(window, delta_time, camera);
+
+		time.update(frame_time);
+		light_block->updateDirection(LightBlock::LightType::Directional, 0, glm::normalize(glm::vec4(time.getSunXDir(), time.getSunYDir(), 0.0f, 0.0f)));
 
 		// start rendering
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
@@ -111,13 +125,8 @@ int main()
 		glm::mat4 projection = glm::perspective(glm::radians(camera.getZoom()), (float)SCR_WIDTH / (float)SCR_HEIGHT, NEAR_PLANE, FAR_PLANE);
 		glm::mat4 view = camera.getViewMatrix();
 
-		// shadows
-		// ----
-		glCullFace(GL_FRONT);
-		glPolygonOffset(1.0f, 1.0f);
-		glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
-		glBindFramebuffer(GL_FRAMEBUFFER, depth_map_fbo);
-		glClear(GL_DEPTH_BUFFER_BIT);
+		world.updateNormalMats(view);
+
 		float shadow_render_distance = 100;
 		glm::vec3 world_up(0.0, 1.0, 0.0);
 		glm::vec3 light_position((glm::vec3(-light_block->read().directional_lights[0].dir) * ((shadow_render_distance/2) + SHADOW_NEAR_PLANE)) + camera.getPosition());
@@ -126,94 +135,39 @@ int main()
 		glm::vec3 light_up(glm::normalize(glm::cross(light_right, light_front)));
 		glm::mat4 light_view = glm::lookAt(light_position, light_position + light_front, light_up);
 		glm::mat4 light_projection = glm::ortho(-shadow_render_distance/2, shadow_render_distance/2, -shadow_render_distance/2, shadow_render_distance/2, SHADOW_NEAR_PLANE, shadow_render_distance + SHADOW_NEAR_PLANE);
-		renderScene(light_view, light_projection, shadow_shader, grass, dirt, world);
+
+		// shadows
+		// ----
+		glCullFace(GL_FRONT);
+		glPolygonOffset(1.0f, 1.0f);
+		glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
+		glBindFramebuffer(GL_FRAMEBUFFER, depth_map_fbo);
+		glClear(GL_DEPTH_BUFFER_BIT);
+		renderScene(light_view, light_projection, shadow_shader, models, world);
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
 		glPolygonOffset(0.0f, 0.0f);
 		glCullFace(GL_BACK);
-
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
 		default_shader.activate();
 		default_shader.setInt("depth_map", 16);
 		glActiveTexture(GL_TEXTURE0 + 16);
 		glBindTexture(GL_TEXTURE_2D, depth_map);
+		default_shader.setMat4("view", view);
+		default_shader.setMat4("projection", projection);
 		default_shader.setMat4("light_view", light_view);
 		default_shader.setMat4("light_projection", light_projection);
-		renderScene(view, projection, default_shader, grass, dirt, world);
+		renderScene(view, projection, default_shader, models, world);
 
 		// lights
 		// ----
 		light_shader.activate();
 		light_shader.setMat4("view", view);
 		light_shader.setMat4("projection", projection);
-
-		// TODO this stuff is redundant, fix it
-		// point lights
-		const LightBlockData& light_data = light_block->read();
-		using PointLightSizeType = std::remove_cvref_t<decltype(light_data.point_lights)>::size_type;
-		for (PointLightSizeType i=0; i<light_data.point_lights.size(); i++) {
-			glm::vec4 zero(0.0f);
-			PointLight cur_light = light_data.point_lights[i];
-			if (glm::all(glm::equal(cur_light.pos, glm::vec4(camera.getPosition(), 1.0))) || (
-					(glm::all(glm::equal(cur_light.color.ambient, zero))) &&
-					(glm::all(glm::equal(cur_light.color.diffuse, zero))) &&
-					(glm::all(glm::equal(cur_light.color.specular, zero)))
-				)
-			) {
-				continue;
-			}
-			light_shader.setVec4("light_color", cur_light.color.diffuse);
-			glm::mat4 model = glm::mat4(1.0f);
-
-			model = glm::translate(model, glm::vec3(cur_light.pos));
-			model = glm::scale(model, glm::vec3(0.2f));
-
-			light_shader.setMat4("model", model);
-			cube.draw(light_shader);
-		}
-
-		// spot lights
-		using SpotLightSizeType = std::remove_cvref_t<decltype(light_data.spot_lights)>::size_type;
-		for (SpotLightSizeType i=0; i<light_data.spot_lights.size(); i++) {
-			glm::vec4 zero(0.0f);
-			SpotLight cur_light = light_data.spot_lights[i];
-			if (glm::all(glm::equal(cur_light.pos, glm::vec4(camera.getPosition(), 1.0))) || (
-					(glm::all(glm::equal(cur_light.color.ambient, zero))) &&
-					(glm::all(glm::equal(cur_light.color.diffuse, zero))) &&
-					(glm::all(glm::equal(cur_light.color.specular, zero)))
-				)
-			) {
-				continue;
-			}
-			light_shader.setVec4("light_color", cur_light.color.diffuse);
-			glm::mat4 model = glm::mat4(1.0f);
-
-			model = glm::translate(model, glm::vec3(cur_light.pos));
-			model = glm::scale(model, glm::vec3(0.2f));
-
-			light_shader.setMat4("model", model);
-			cube.draw(light_shader);
-		}
-
-		// directional lights
-		using DirLightSizeType = std::remove_cvref_t<decltype(light_data.directional_lights)>::size_type;
-		for (DirLightSizeType i=0; i<light_data.directional_lights.size(); i++) {
-			glm::vec4 zero(0.0f);
-			DirectionalLight cur_light = light_data.directional_lights[i];
-			if ((glm::all(glm::equal(cur_light.color.ambient, zero))) &&
-				(glm::all(glm::equal(cur_light.color.diffuse, zero))) &&
-				(glm::all(glm::equal(cur_light.color.specular, zero)))) {
-				continue;
-			}
-			light_shader.setVec4("light_color", cur_light.color.diffuse);
-			glm::mat4 model = glm::mat4(1.0f);
-
-			model = glm::translate(model, camera.getPosition() + (glm::vec3(-cur_light.dir) * 100.0f));
-			model = glm::scale(model, glm::vec3(10.0f));
-			
-			light_shader.setMat4("model", model);
-			cube.draw(light_shader);
-		}
+		drawLight(cube, light_shader, light_block->read().directional_lights, camera.getPosition());
+		drawLight(cube, light_shader, light_block->read().spot_lights, camera.getPosition());
+		drawLight(cube, light_shader, light_block->read().point_lights, camera.getPosition());
 
 		// skybox
 		glCullFace(GL_FRONT);
@@ -223,17 +177,11 @@ int main()
 		cube.draw(skybox_shader);
 		glCullFace(GL_BACK);
 
-		ImGui::Render();
-		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-
 		// glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 	}
 
-	ImGui_ImplOpenGL3_Shutdown();
-	ImGui_ImplGlfw_Shutdown();
-	ImGui::DestroyContext();
-	glfwTerminate();
+	shutdown();
 	return 0;
 }

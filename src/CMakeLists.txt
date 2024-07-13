@@ -10,4 +10,5 @@ target_sources(opengl_practice PRIVATE
                 world.cpp
                 component.cpp
                 system_utils.cpp
+                game_time.cpp
                 )

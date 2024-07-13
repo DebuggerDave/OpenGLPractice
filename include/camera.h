@@ -1,9 +1,9 @@
 #ifndef CAMERA_H
 #define CAMERA_H
 
-#include "glm/ext/vector_float3.hpp"
+#include "glm/vec3.hpp"
+#include "glm/geometric.hpp"
 #include "glm/fwd.hpp"
-struct GLFWwindow;
 
 // Process input and Calculate the corresponding Euler Angles, Vectors and Matrices for use in OpenGL
 class Camera
@@ -31,19 +31,18 @@ public:
 	void processJoystickRotation(const float x_offset, const float y_offset, const bool constrain_pitch=true);
 	// Processes input received from a mouse scroll-wheel event. Only requires input on the vertical wheel-axis
 	void processZoom(const float y_offset);
-
 	// Getters
 	glm::vec3 getPosition() const;
 	glm::vec3 getFront() const;
 	float getZoom() const;
 
+	inline static const float default_mouse_sensitivity = 0.1f;
+	inline static const float default_joystick_sensitivity = 1.0f;
+	inline static const float default_zoom = 45.0f;
+	inline static const float default_pitch = 0.0f;
+	inline static const float default_yaw = -90.0f;
+	inline static const glm::vec3 world_up = glm::normalize(glm::vec3(0.0f, 1.0f, 0.0f));
 private:
-	static const float default_mouse_sensitivity;
-	static const float default_joystick_sensitivity;
-	static const float default_zoom;
-	static const float default_pitch;
-	static const float default_yaw;
-	static const glm::vec3 world_up;
 	// Camera Attributes
 	glm::vec3 position;
 	glm::vec3 front;

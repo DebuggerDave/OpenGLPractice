@@ -1,9 +1,15 @@
 #include "light_block.h"
 
-#include "pch.h"
 #include "light_uniform_buffer.h"
 #include "utils.h"
 
+#include "glad/gl.h"
+#include "glm/vec4.hpp"
+#include "glm/gtc/type_ptr.hpp"
+#include "glm/trigonometric.hpp"
+
+#include <cstddef>
+#include <string>
 #include <vector>
 #include <memory>
 
@@ -44,13 +50,10 @@ LightBlock::~LightBlock()
 	deallocate();
 }
 
-const std::string LightBlock::light_uniform_buffer_path{"./glsl/include/light_uniform_buffer.h"};
-const std::string LightBlock::directional_light_macro{"#define NUM_DIRECTIONAL_LIGHTS"};
-const std::string LightBlock::spot_light_macro{"#define NUM_SPOT_LIGHTS"};
-const std::string LightBlock::point_light_macro{"#define NUM_POINT_LIGHTS"};
-const std::string LightBlock::block_name{STRINGIFY(UNIFORM_BUFFER_TYPE)};
-
 std::shared_ptr<LightBlock> LightBlock::makeShared(const size_t num_directional_lights, const size_t num_spot_lights, const size_t num_point_lights) {
+	if ((num_directional_lights < 1) ||  (num_spot_lights < 1) || (num_point_lights < 1)) {
+		LOG("LightBlock cannot have lights of size zero")
+	}
 	return std::shared_ptr<LightBlock>{new LightBlock{num_directional_lights, num_spot_lights, num_point_lights}};
 }
 

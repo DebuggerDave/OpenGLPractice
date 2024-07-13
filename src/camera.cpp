@@ -1,13 +1,10 @@
 #include "camera.h"
 
-#include "pch.h"
-
-const float Camera::default_mouse_sensitivity = 0.1f;
-const float Camera::default_joystick_sensitivity = 1.0f;
-const float Camera::default_zoom = 45.0f;
-const float Camera::default_pitch = 0.0f;
-const float Camera::default_yaw = -90.0f;
-const glm::vec3 Camera::world_up = glm::normalize(glm::vec3(0.0f, 1.0f, 0.0f));
+#include "glm/vec3.hpp"
+#include "glm/ext/matrix_transform.hpp"
+#include "glm/geometric.hpp"
+#include "glm/trigonometric.hpp"
+#include "glad/gl.h"
 
 Camera::Camera(const glm::vec3& position, const float yaw, const float pitch) :
 	position(position),

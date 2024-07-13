@@ -2,19 +2,15 @@
 #define LIGHTBLOCK
 
 #include "light_uniform_buffer.h"
+#include "utils.h"
 
 #include "glm/fwd.hpp"
 #include "glad/gl.h"
 
 #include <cstddef>
 #include <string>
-
-namespace std {
-	template <typename T>
-	class shared_ptr;
-	template <typename T, typename Allocator>
-	class vector;
-}
+#include <memory>
+#include <vector>
 
 class LightBlock
 {
@@ -27,7 +23,7 @@ public:
 
 	~LightBlock();
 	// This class is only accessible through shared pointer
-	static std::shared_ptr<LightBlock> makeShared(const size_t num_directional_light = 0, const size_t num_spot_light = 0, const size_t num_point_lights = 0);
+	static std::shared_ptr<LightBlock> makeShared(const size_t num_directional_light = 1, const size_t num_spot_light = 1, const size_t num_point_lights = 1);
 	// public push back functions
 	template<typename T>
 	bool pushBack(const T& light);
@@ -93,13 +89,13 @@ private:
 	// light data
 	UNIFORM_BUFFER_TYPE uni_buff{};
 	// path to injectible shader code
-	static const std::string light_uniform_buffer_path;
+	inline static const std::string light_uniform_buffer_path{"./glsl/include/light_uniform_buffer.h"};
 	// macros in injectible shader code
-	static const std::string directional_light_macro;
-	static const std::string spot_light_macro;
-	static const std::string point_light_macro;
+	inline static const std::string directional_light_macro{"#define NUM_DIRECTIONAL_LIGHTS"};
+	inline static const std::string spot_light_macro{"#define NUM_SPOT_LIGHTS"};
+	inline static const std::string point_light_macro{"#define NUM_POINT_LIGHTS"};
 	// name of struct in injectible shader code
-	static const std::string block_name;
+	inline static const std::string block_name{STRINGIFY(UNIFORM_BUFFER_TYPE)};
 };
 
 #endif

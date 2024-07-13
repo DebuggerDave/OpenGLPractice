@@ -1,10 +1,17 @@
 #include "mesh.h"
 
-#include "pch.h"
-#include "utils.h"
 #include "shader.h"
+#include "world.h"
+#include "component.h"
+#include "utils.h"
+
+#include "glad/gl.h"
 
 #include <vector>
+#include <string>
+#include <utility>
+#include <cmath>
+#include <type_traits>
 
 Mesh::Mesh(const std::vector<Vertex>& vertices, const std::vector<unsigned int>& indices, const std::vector<Texture>& textures) :
     VAO(0), VBO(0), EBO(0),
@@ -19,31 +26,28 @@ Mesh::~Mesh() {
     free();
 }
 
-Mesh::Mesh(Mesh&& other) noexcept :
-    VAO(std::exchange(other.VAO, 0)),
-    VBO(std::exchange(other.VBO, 0)),
-    EBO(std::exchange(other.EBO, 0)),
-    vertices(std::move(other.vertices)),
-    indices(std::move(other.indices)),
-    textures(std::move(other.textures))
-    {}
+
+Mesh::Mesh(Mesh&& other) noexcept
+{
+    *this = std::move(other);
+}
 
 Mesh& Mesh::operator=(Mesh&& other) noexcept
 {
     free();
+    if (this != &other) {
+        VAO = std::exchange(other.VAO, 0);
+        VBO = std::exchange(other.VBO, 0);
+        EBO = std::exchange(other.EBO, 0);
 
-    vertices = std::move(other.vertices);
-    indices = std::move(other.indices);
-    textures = std::move(other.textures);
-
-    VAO = std::exchange(other.VAO, 0);
-    VBO = std::exchange(other.VBO, 0);
-    EBO = std::exchange(other.EBO, 0);
-
+        vertices = std::move(other.vertices);
+        indices = std::move(other.indices);
+        textures = std::move(other.textures);
+    }
     return *this;
 }
 
-void Mesh::draw(const Shader& shader) const
+void Mesh::draw(const Shader& shader, const unsigned int num) const
 {
     // textures
     if (textures.size() > GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS) {
@@ -63,7 +67,16 @@ void Mesh::draw(const Shader& shader) const
 
     // draw
     glBindVertexArray(VAO);
-    glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
+    if (num == 0) {
+        glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
+    } else {
+        glDrawElementsInstanced(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0, num);
+    }
+}
+
+void Mesh::setupInstancing(const World& world, const BlockId id) const
+{
+    world.setupInstancing(VAO, instance_vertex_attrib_index, id);
 }
 
 std::string Mesh::texTypeToString(const TexType type) const
@@ -104,16 +117,14 @@ void Mesh::setupMesh()
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), &indices[0], GL_STATIC_DRAW);
 
     // vertex positions
-    glEnableVertexAttribArray(0);	
+    glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0);
     // vertex normals
-    glEnableVertexAttribArray(1);	
+    glEnableVertexAttribArray(1);
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, Normal));
     // vertex texture coords
-    glEnableVertexAttribArray(2);	
+    glEnableVertexAttribArray(2);
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, TexCoords));
-
-    glBindVertexArray(0);
 }
 
 void Mesh::free() {

@@ -1,13 +1,16 @@
 #ifndef MESH_H
 #define MESH_H
 
-#include "glm/fwd.hpp"
+class Shader;
+class World;
+enum class BlockId : unsigned int;
+
 #include "glad/gl.h"
+#include "glm/vec3.hpp"
+#include "glm/vec2.hpp"
 
 #include <vector>
 #include <iosfwd>
-
-class Shader;
 
 class Mesh {
     public:
@@ -39,13 +42,18 @@ class Mesh {
         Mesh& operator=(const Mesh& other) = delete;
         Mesh& operator=(Mesh&& other) noexcept;
 
-        void draw(const Shader& shader) const;
+        // draw number of instances indicated by num, zero draws without instancing
+        void draw(const Shader& shader, const unsigned int num = 0) const;
+        // add a vertex attribute array of vec4s for instance rendering
+        void setupInstancing(const World& world, const BlockId id) const;
+
     private:
         //  render data
-        unsigned int VAO, VBO, EBO;
+        GLuint VAO, VBO, EBO;
         std::vector<Vertex> vertices;
         std::vector<unsigned int> indices;
         std::vector<Texture> textures;
+        static const GLuint instance_vertex_attrib_index = 3;
 
         // convert texture enum to string
         std::string texTypeToString(const TexType type) const;

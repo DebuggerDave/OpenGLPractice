@@ -10,6 +10,7 @@
 #include <random>
 #include <array>
 #include <type_traits>
+#include <numbers>
 
 #include "glad/gl.h"
 

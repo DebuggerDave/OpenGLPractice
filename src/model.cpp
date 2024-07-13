@@ -1,22 +1,45 @@
 #include "model.h"
 
-#include "pch.h"
-#include "shader.h"
 #include "mesh.h"
+#include "component.h"
+#include "shader.h"
+#include "world.h"
 #include "utils.h"
 
-#include <vector>
+#include "assimp/scene.h"
+#include "assimp/mesh.h"
+#include "assimp/material.h"
+#include "assimp/Importer.hpp"
+#include "assimp/postprocess.h"
 
-Model::Model(const std::string& path)
+#include "stb_image.h"
+
+#include <string>
+#include <vector>
+#include <unordered_map>
+
+Model::Model(const std::string& path, BlockId id) : id(id)
 {
 	loadModel(path);
 }
 
-void Model::draw(const Shader& shader) const
+void Model::draw(const Shader& shader, const unsigned int num) const
 {
-    for(unsigned int i = 0; i < meshes.size(); i++) {
-        meshes[i].draw(shader);
-	}
+    for (const Mesh& mesh : meshes) {
+        mesh.draw(shader, num);
+    }
+}
+
+void Model::setupInstancing(const World& world) const
+{
+    if (id == BlockId::NoneOrNumIDs) {
+        LOG("Failed to setup instancing, no valid block ID")
+        return;
+    }
+
+    for (const Mesh& mesh : meshes) {
+        mesh.setupInstancing(world, id);
+    }
 }
 
 void Model::loadModel(const std::string& path)

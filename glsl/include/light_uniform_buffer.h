@@ -8,7 +8,7 @@
 
 #ifdef __cplusplus
 #include <vector>
-#include "glm/ext/vector_float4.hpp"
+#include "glm/glm.hpp"
 #define VEC4 glm::vec4
 #define LIGHT_BLOCK_QUALIFIER struct
 #define CONTAINER(type, name, size) std::vector<type> name

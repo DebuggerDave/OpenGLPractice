@@ -39,6 +39,7 @@ set(ASSIMP_BUILD_ALL_IMPORTERS_BY_DEFAULT OFF CACHE BOOL "" FORCE)
 set(ASSIMP_BUILD_OBJ_IMPORTER ON CACHE BOOL "" FORCE)
 set(ASSIMP_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(ASSIMP_INSTALL OFF CACHE BOOL "" FORCE)
+set(ASSIMP_WARNINGS_AS_ERRORS OFF CACHE BOOL "" FORCE)
 set(ASSIMP_INJECT_DEBUG_POSTFIX OFF CACHE BOOL "" FORCE)
 set(ASSIMP_IGNORE_GIT_HASH ON CACHE BOOL "" FORCE)
 set(ASSIMP_INSTALL_PDB OFF CACHE BOOL "" FORCE)
@@ -48,10 +49,10 @@ add_subdirectory(assimp)
 target_link_libraries(opengl_practice PRIVATE assimp)
 
 # imgui
-# allow imgui to be in a pre-compiled header, it uses math operators internally
-target_compile_definitions(opengl_practice PRIVATE "-DIMGUI_DEFINE_MATH_OPERATORS")
-# ignore opengl loader code from imgui, we use glad2 instead
-target_compile_definitions(opengl_practice PRIVATE "-DIMGUI_IMPL_OPENGL_LOADER_CUSTOM")
+### fixes for pre-compiled headers, imgui needs it's internal math operators
+##target_compile_definitions(opengl_practice PRIVATE "-DIMGUI_DEFINE_MATH_OPERATORS")
+### fixes for pre-compiled headers, ignore opengl loader code from imgui, pch has glad2 instead
+##target_compile_definitions(opengl_practice PRIVATE "-DIMGUI_IMPL_OPENGL_LOADER_CUSTOM")
 # global files
 target_sources(opengl_practice PRIVATE
     ./imgui/imgui_demo.cpp
