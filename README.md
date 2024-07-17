@@ -25,5 +25,5 @@ Learning OpenGL and some other stuff
 * `ASEPRITE=PATH_TP_ASEPRITE_EXECUTABLE cmake -S ..`
 * `cmake --build .`
 * `./opengl_practice.exe`
-
-![image](https://github.com/user-attachments/assets/43d6a7fe-c71e-4634-89d5-5c5b7c2f4e13)
+* 
+![image](https://github.com/user-attachments/assets/97f477ab-dad8-4d8c-b066-095bdbf00b36)
