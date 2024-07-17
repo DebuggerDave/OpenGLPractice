@@ -26,4 +26,4 @@ Learning OpenGL and some other stuff
 * `cmake --build .`
 * `./opengl_practice.exe`
 
-![opengl](https://github.com/DebuggerDave/OpenGLPractice/assets/33384202/d0011744-9f23-4b7c-867a-e7431f051615)
+![image](https://github.com/user-attachments/assets/43d6a7fe-c71e-4634-89d5-5c5b7c2f4e13)
