@@ -37,3 +37,12 @@ template
 void BlockId::serialize(cereal::BinaryInputArchive &archive);
 template
 void BlockId::serialize(cereal::BinaryOutputArchive &archive);
+
+template<typename Archive>
+void BoxCollider::serialize(Archive &archive) {
+    archive(offset.x, offset.y, offset.z, size.x, size.y, size.z);
+}
+template
+void BoxCollider::serialize(cereal::BinaryInputArchive &archive);
+template
+void BoxCollider::serialize(cereal::BinaryOutputArchive &archive);

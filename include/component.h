@@ -48,6 +48,9 @@ struct BoxCollider
 {
 	BoxCollider() noexcept = default;
 	BoxCollider(const BoxCollider&) noexcept = default;
+	// serialization
+	template <typename Archive>
+	void serialize(Archive &archive);
 
 	// data
 	glm::vec3 offset = { 0.0f, 0.0f, 0.0f };
