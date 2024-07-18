@@ -11,4 +11,6 @@ target_sources(opengl_practice PRIVATE
                 component.cpp
                 system_utils.cpp
                 game_time.cpp
+                screen_manager.cpp
+                shadow.cpp
                 )

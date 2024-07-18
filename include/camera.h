@@ -18,8 +18,8 @@ public:
 		Down
 	};
 
-	Camera(const glm::vec3& position, const float yaw=default_yaw, const float pitch=default_pitch);
-	Camera(const float x=0, const float y=0, const float z=0, const float yaw=default_yaw, const float pitch=default_pitch);
+	Camera(const glm::vec3& position, const float yaw=default_yaw, const float pitch=default_pitch) noexcept;
+	Camera(const float x=0, const float y=0, const float z=0, const float yaw=default_yaw, const float pitch=default_pitch) noexcept;
 
 	// Returns the view matrix calculated using Euler Angles and the LookAt Matrix
 	glm::mat4 getViewMatrix() const;
@@ -36,12 +36,11 @@ public:
 	glm::vec3 getFront() const;
 	float getZoom() const;
 
-	inline static const float default_mouse_sensitivity = 0.1f;
-	inline static const float default_joystick_sensitivity = 1.0f;
+	inline static const float mouse_sensitivity = 0.1f;
+	inline static const float joystick_sensitivity = 1.0f;
 	inline static const float default_zoom = 45.0f;
 	inline static const float default_pitch = 0.0f;
 	inline static const float default_yaw = -90.0f;
-	inline static const glm::vec3 world_up = glm::normalize(glm::vec3(0.0f, 1.0f, 0.0f));
 private:
 	// Camera Attributes
 	glm::vec3 position;
@@ -49,12 +48,9 @@ private:
 	glm::vec3 up;
 	glm::vec3 right;
 	// Euler Angles
-	float yaw;
-	float pitch;
-	// Camera options
-	float mouse_sensitivity;
-	float joystick_sensitivity;
-	float zoom;
+	float yaw = default_yaw;
+	float pitch = default_pitch;
+	float zoom = default_zoom;
 
 	// Calculates the front vector from the Camera's (updated) Euler Angles
 	void updateCameraVectors();

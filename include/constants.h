@@ -1,33 +1,20 @@
 #ifndef CONSTANTS_H
 #define CONSTANTS_H
 
+#include "glm/vec3.hpp"
+#include "glm/vec4.hpp"
+#include "light_uniform_buffer.h"
+
 // system
-static const unsigned int SCR_WIDTH = 1280;
-static const unsigned int SCR_HEIGHT = 720;
-static const unsigned int SHADOW_RESOLUTION = 1024;
-static const unsigned int SHADOW_WIDTH = SHADOW_RESOLUTION;
-static const unsigned int SHADOW_HEIGHT = SHADOW_RESOLUTION;
+static constexpr unsigned int SCR_WIDTH = 1280;
+static constexpr unsigned int SCR_HEIGHT = 720;
 
 // rendering
-static const float SHADOW_NEAR_PLANE = 5.0f;
-static const float FAR_PLANE = 256.0f;
-static const float NEAR_PLANE = 0.1f;
-
-// controls
-static const bool USE_MOUSE = false;
-static const bool USE_GAMEPAD = true;
-static const float BASE_SPEED = 2.5f;
-static const float MAX_SPEED = BASE_SPEED * 10.0f;
-static const float MIN_DEAD_ZONE = 0.1f;
-static const float JOYSTICK_SENSITIVITY = 3.0f;
-
-// time (in seconds)
-static const int MINUTE = 60;
-static const int HOUR = MINUTE * 60;
-static const int DAY = HOUR * 24;
-static const int HALF_DAY = DAY / 2.0f;
-
-// world generation
-static const float BLOCK_HALF_LENGTH = .5;
+static constexpr float FAR_PLANE = 256.0f;
+static constexpr float NEAR_PLANE = 0.1f;
+static constexpr glm::vec3 WORLD_UP = glm::vec3(0.0f, 1.0f, 0.0f);
+static constexpr glm::vec4 CLEAR_COLOR = glm::vec4(0.2f, 0.3f, 0.3f, 1.0f);
+static constexpr glm::vec4 COLOR_BLACK = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
+static const LightColor LIGHT_BLACK{COLOR_BLACK, COLOR_BLACK, COLOR_BLACK};
 
 #endif

@@ -15,7 +15,6 @@ struct Material {
 };
 
 uniform sampler2D depth_map;
-
 uniform Material material;
 uniform mat3 light_normal_mat;
 uniform mat4 view;
@@ -39,7 +38,7 @@ void main()
 	vec4 diffuse_tex = texture(material.texture_diffuse0, tex_coord);
 	vec4 specular_tex = texture(material.texture_specular0, tex_coord);
 	vec4 normal_tex = texture(material.texture_normal0, tex_coord);
-	float shininess = 0;//material.shininess;
+	float shininess = material.shininess;
 
 	vec4 output_color = vec4(0.0);
 	for(int i=0; i<NUM_POINT_LIGHTS; i++) {
@@ -128,8 +127,8 @@ vec4 calc_light(vec3 normal, vec3 light_to_frag_dir, vec3 frag_pos, float shinin
 	float shadow_average = 0.0;
 	vec2 texelSize = 1.0 / textureSize(depth_map, 0);
 	float current_depth = light_space_pos.z;
-	// send values greater than or equal to 1.0 to 0.0
-	current_depth = mod(clamp(current_depth, 0.0, 1.0), 1.0);
+	// send values greater than 1.0 to 0.0
+	current_depth = clamp(current_depth, 0.0, 1.0);
 	// iterate over a 3x3 grid around the corresponding texel
 	if (average_shadows) {
 		for (int x = -1; x <= 1; ++x) {
@@ -148,7 +147,7 @@ vec4 calc_light(vec3 normal, vec3 light_to_frag_dir, vec3 frag_pos, float shinin
 	vec4 diffuse = diffuse_tex * diffuse_scale * diffuse_light;
 	vec4 specular = specular_tex * specular_scale * specular_light;
 
-	return ambient + ((diffuse + specular));// * (1 - shadow_average));
+	return ambient + ((diffuse + specular) * (1 - shadow_average));
 }
 
 vec4 better_normalize(vec4 in_vec) {

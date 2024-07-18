@@ -8,6 +8,25 @@
 #include <cstdio>
 
 namespace utils {
+	ScopedDeleter::ScopedDeleter(void (*deleter)()) noexcept : deleter(deleter) {};
+	ScopedDeleter::~ScopedDeleter()
+	{
+		if (deleter) {
+			deleter();
+		}
+	}
+	void ScopedDeleter::removeDeleter() { deleter = nullptr; }
+
+	float min(float x, float y) {
+		if (x <= y) return x;
+		else return y;
+	}
+
+	float max(float x, float y) {
+		if (x >= y) return x;
+		else return y;
+	}
+
 	int sign(float x) {
 		return (x > 0) - (x < 0);
 	}
@@ -28,9 +47,7 @@ namespace utils {
 			stream << file.rdbuf();
 			file.close();
 			file_contents = stream.str();
-		}
-		catch (std::ifstream::failure& e)
-		{
+		} catch (std::ifstream::failure& e) {
 			LOG("Unable to parse file")
 			return false;
 		}
@@ -41,7 +58,7 @@ namespace utils {
 
     void FreeDelete::operator()(void* x) { free(x); }
 
-	err::err(const std::source_location& source) : source(source) {}
+	err::err(const std::source_location& source) noexcept : source(source) {}
 
 	err& err::operator<<(err& (*func)(err& e)) {
 		return func(*this);
@@ -52,7 +69,7 @@ namespace utils {
 		return e;
 	}
 
-	privy::Log::Log() {
+	privy::Log::Log() noexcept {
 		std::remove(log_path.c_str());
 		stream = std::ofstream{log_path, std::ofstream::out | std::ofstream::app};
 	}

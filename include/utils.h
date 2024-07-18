@@ -6,12 +6,47 @@
 #include <concepts>
 #include <string>
 #include <fstream>
+#include <vector>
 
 #define STRINGIFY_MACRO_EXPANSION(x) #x
 #define STRINGIFY(x) STRINGIFY_MACRO_EXPANSION(x)
 #define LOG(x) utils::err() << x << utils::endl;
 
-namespace utils {
+namespace utils
+{
+	template <typename T>
+	concept Streamable = requires(T t) { std::cout << t; };
+	template <typename T>
+	concept FStreamable = requires(T t) { std::fstream{} << t; };
+
+	class ScopedDeleter
+	{
+	public:
+		explicit ScopedDeleter(void (*deleter)()) noexcept;
+		~ScopedDeleter();
+		void removeDeleter();
+	private:
+		void (*deleter)() = nullptr;
+	};
+
+	// fast way to delete in O(c) time instead of O(n) time, does not maintain order
+	template <typename T>
+	void vecSwapPopBack(std::vector<T>& vec, const size_t index)
+	{
+		if (index >= vec.size())
+			return;
+
+		if ((index == (vec.size() - 1)) || (vec.size() == 1)) {
+			vec.pop_back();
+		} else {
+			vec[index] = std::move(vec.back());
+			vec.pop_back();
+		}
+	}
+
+	float min(float x, float y);
+	float max(float x, float y);
+
 	// return the sign of a number
 	int sign(float x);
 
@@ -19,23 +54,21 @@ namespace utils {
 	bool readFile(const std::string& path, std::string& out);
 
 	// custom free operator for shared pointers
-	struct FreeDelete {
-		void operator()(void* x);
+	struct FreeDelete
+	{
+		void operator()(void *x);
 	};
 
-	template <typename T>
-	concept Streamable = requires(T t) { std::cout << t; };
-	template <typename T>
-	concept FStreamable = requires(T t) { std::fstream{} << t; };
-
 	// ---- custom logging ----
-	class err {
+	class err
+	{
 	public:
-		err(const std::source_location& source = std::source_location::current());
+		err(const std::source_location& source = std::source_location::current()) noexcept;
 
 		// forward to std::cerr
 		template <Streamable T>
-		err operator<<(const T& t) const {
+		err operator<<(const T& t) const
+		{
 			std::cerr << t;
 			return *this;
 		}
@@ -46,22 +79,25 @@ namespace utils {
 	};
 
 	// print souce code location
-	err& endl(err& e );
-	
+	err& endl(err& e);
+
 	// I don't want users to see the actual class
-	namespace privy {
-		class Log {
+	namespace privy
+	{
+		class Log
+		{
 		public:
-			Log();
+			Log() noexcept;
 			// forward to std::ofstream
 			template <FStreamable T>
-			Log& operator<<(const T& t) {
+			Log& operator<<(const T& t)
+			{
 				if (stream.is_open()) {
 					stream << t;
 				} else {
 					LOG("Failed to open log file.");
 				}
-				
+
 				return *this;
 			}
 
@@ -70,7 +106,7 @@ namespace utils {
 			std::ofstream stream;
 		};
 	}
-	static privy::Log log={};
+	static privy::Log log = {};
 }
 
 #endif

@@ -3,7 +3,7 @@
 
 class Shader;
 class World;
-enum class BlockId : unsigned int;
+struct BlockId;
 
 #include "glad/gl.h"
 #include "glm/vec3.hpp"
@@ -20,7 +20,7 @@ class Mesh {
             glm::vec2 TexCoords;
         };
 
-        enum class TexType {
+        enum class TexType : unsigned int {
             Diffuse,
             Specular,
             Normal,
@@ -35,7 +35,7 @@ class Mesh {
         Mesh(const std::vector<Vertex>& vertices = std::vector<Vertex>{},
             const std::vector<unsigned int>& indices = std::vector<unsigned int>{},
             const std::vector<Texture>& textures = std::vector<Texture>{}
-            );
+        ) noexcept;
         ~Mesh();
         Mesh(const Mesh& other) = delete;
         Mesh(Mesh&& other) noexcept;

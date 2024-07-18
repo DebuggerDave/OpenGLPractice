@@ -1,23 +1,22 @@
 #include "camera.h"
 
+#include "constants.h"
+
 #include "glm/vec3.hpp"
 #include "glm/ext/matrix_transform.hpp"
 #include "glm/geometric.hpp"
 #include "glm/trigonometric.hpp"
 #include "glad/gl.h"
 
-Camera::Camera(const glm::vec3& position, const float yaw, const float pitch) :
+Camera::Camera(const glm::vec3& position, const float yaw, const float pitch) noexcept :
 	position(position),
 	yaw(yaw),
-	pitch(pitch),
-	mouse_sensitivity(default_mouse_sensitivity),
-	joystick_sensitivity(default_joystick_sensitivity),
-	zoom(default_zoom)
+	pitch(pitch)
 {
 	updateCameraVectors();
 }
 
-Camera::Camera(const float x, const float y, const float z, const float yaw, const float pitch) :
+Camera::Camera(const float x, const float y, const float z, const float yaw, const float pitch) noexcept :
 	Camera(glm::vec3(x, y, z), yaw, pitch)
 {}
 
@@ -44,12 +43,12 @@ void Camera::processMovement(const Movement direction, const float velocity)
 
 void Camera::processMouseRotation(const float x_offset, const float y_offset, const bool constrain_pitch)
 {
-	processRotation(x_offset, y_offset, (GLboolean)constrain_pitch, mouse_sensitivity);
+	processRotation(x_offset, y_offset, static_cast<GLboolean>(constrain_pitch), mouse_sensitivity);
 }
 
 void Camera::processJoystickRotation(const float x_offset, const float y_offset, const bool constrain_pitch)
 {
-	processRotation(x_offset, y_offset, (GLboolean)constrain_pitch, joystick_sensitivity);
+	processRotation(x_offset, y_offset, static_cast<GLboolean>(constrain_pitch), joystick_sensitivity);
 }
 
 void Camera::processZoom(float y_offset)
@@ -86,7 +85,7 @@ void Camera::updateCameraVectors()
 	new_front.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
 	front = glm::normalize(new_front);
 	// Also re-calculate the Right and Up vector
-	right = glm::normalize(glm::cross(front, world_up));
+	right = glm::normalize(glm::cross(front, WORLD_UP));
 	up = glm::normalize(glm::cross(right, front));
 }
 

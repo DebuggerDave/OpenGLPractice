@@ -1,15 +1,16 @@
 #include "system_utils.h"
 
-#include "shader.h"
+#include "screen_manager.h"
+#include "camera.h"
+#include "world.h"
 #include "model.h"
 #include "light_block.h"
-#include "camera.h"
-#include "light_uniform_buffer.h"
-#include "world.h"
+#include "shader.h"
+#include "shadow.h"
+#include "game_time.h"
 #include "constants.h"
-#include "utils.h"
 
-#include "GLFW/glfw3.h"
+#include "glad/gl.h"
 #include "glm/mat4x4.hpp"
 #include "glm/mat3x3.hpp"
 #include "glm/vec4.hpp"
@@ -17,230 +18,105 @@
 #include "glm/vector_relational.hpp"
 #include "glm/geometric.hpp"
 #include "glm/ext/matrix_transform.hpp"
-#include "glm/gtc/type_ptr.hpp"
 #include "stb_image.h"
-#include "imgui.h"
-#include "imgui_impl_glfw.h"
-#include "imgui_impl_opengl3.h"
 
 #include <string>
 #include <vector>
-#include <unordered_set>
+#include <utility>
 
-// TODO find a better place for this
-static std::unordered_set<int> joystick_ids = {};
+GameData::GameData(
+	ScreenManager& screen, std::shared_ptr<Camera>& camera, World& world, std::vector<Model>& models,
+	Model& cube, std::shared_ptr<LightBlock> light_block, Shader& light_shader, Shader& skybox_shader,
+	Shader& default_shader, GLuint& skybox, Shadow& shadow, GameTime& time
+) noexcept :
+	screen{std::move(screen)},
+	camera{std::move(camera)},
+	world{std::move(world)},
+	models{std::move(models)},
+	cube{std::move(cube)},
+	light_block{std::move(light_block)},
+	light_shader{std::move(light_shader)},
+	skybox_shader{std::move(skybox_shader)},
+	default_shader{std::move(default_shader)},
+	skybox{std::move(skybox)},
+	shadow{std::move(shadow)},
+	time{std::move(time)}
+{}
 
-GLFWwindow* init(Camera& camera)
+GameData::~GameData()
 {
-	glfwInit();
-
-	//opengl version
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
-	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-#ifdef __APPLE__
-	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-#endif
-
-	// window
-	GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "LearnOpenGL", NULL, NULL);
-	if (window == NULL)
-	{
-		LOG("Failed to create GLFW window")
-		glfwTerminate();
-		return nullptr;
-	}
-	glfwMakeContextCurrent(window);
-	glfwSetFramebufferSizeCallback(window, framebufferSizeCallback);
-
-	// input
-	if (USE_GAMEPAD) {
-		glfwSetJoystickCallback(joystickCallback);
-		initJoysticks();
-	}
-	if (USE_MOUSE) {
-		// callback user data
-		glfwSetWindowUserPointer(window, reinterpret_cast<void*>(&camera));
-		glfwSetCursorPosCallback(window, cursorPosCallback);
-		glfwSetScrollCallback(window, scrollCallback);
-		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-	}
-
-	// load OpenGL functions
-	if (gladLoadGL(glfwGetProcAddress) == 0)
-	{
-		LOG("Failed to initialize GLAD")
-		return nullptr;
-	}
-
-	// ---- opengl settings ----
-	// depth testing
-	glEnable(GL_DEPTH_TEST);
-	glDepthFunc(GL_LEQUAL);
-	// culling
-	glEnable(GL_CULL_FACE);
-	// gamma correction
-	glEnable(GL_FRAMEBUFFER_SRGB);
-	// offset depth calculation for shadow map
-	glEnable(GL_POLYGON_OFFSET_FILL);
-
-	return window;
+	glDeleteTextures(1, &skybox);
 }
 
-// process all input: query GLFW whether relevant keys are pressed/released this frame and react accordingly
-void processInput(GLFWwindow* const window, const float delta_time, Camera& camera)
+GameData init()
 {
-	processMouseInput(window, delta_time, camera);
-	processGamepadInput(window, delta_time, camera);
+	std::shared_ptr<Camera> camera = std::make_shared<Camera>(0, World::terrain_median_height + World::terrain_amplitude, 0);
+	ScreenManager screen(camera);
+	World world;
+
+	// game models
+	std::vector<Model> models;
+	models.push_back(Model("./assets/other_3d/grass.obj", BlockId::Name::Grass));
+	models.push_back(Model("./assets/other_3d/dirt.obj", BlockId::Name::Dirt));
+	models.push_back(Model("./assets/other_3d/cobblestone.obj", BlockId::Name::Cobblestone));
+	for (const Model& model : models) {
+		model.setupInstancing(world);
+	}
+	// light models
+	Model cube("./assets/other_3d/cube.obj");
+
+	// light_block
+	std::shared_ptr<LightBlock> light_block = std::make_shared<LightBlock>(1, 1, 1);
+	light_block->updateColor(LightBlock::LightType::Spot, 0, LIGHT_BLACK);
+	light_block->updatePosition(LightBlock::LightType::Spot, 0, glm::vec4(camera->getPosition(), 1.0));
+	light_block->updateDirection(LightBlock::LightType::Spot, 0, glm::normalize(glm::vec4(camera->getFront(), 0.0)));
+	light_block->updateColor(LightBlock::LightType::Point, 0, LIGHT_BLACK);
+	light_block->updatePosition(LightBlock::LightType::Point, 0, glm::vec4(camera->getPosition(), 1.0));
+	light_block->allocate();
+
+	// shaders
+	Shader light_shader("./glsl/light.vert", "./glsl/light.frag");
+	light_shader.addLights(Shader::ProgramType::Fragment, light_block);
+	if (!light_shader.compile()) {
+		throw std::runtime_error("failed to compile shader");
+	}
+	Shader skybox_shader("./glsl/skybox.vert", "./glsl/skybox.frag");
+	if (!skybox_shader.compile()) {
+		throw std::runtime_error("failed to compile shader");
+	};
+	Shader default_shader("./glsl/default.vert", "./glsl/default.frag");
+	default_shader.addLights(Shader::ProgramType::Fragment, light_block);
+	if (!default_shader.compile()) {
+		throw std::runtime_error("failed to compile shader");
+	};
+	default_shader.activate();
+	default_shader.setFloat("material.shininess", std::pow(2, 4));
+
+	// skybox
+	unsigned int skybox = loadCubemap(
+		std::vector<std::string>({
+			"./assets/skybox/right.jpg",
+			"./assets/skybox/left.jpg",
+			"./assets/skybox/top.jpg",
+			"./assets/skybox/bottom.jpg",
+			"./assets/skybox/front.jpg",
+			"./assets/skybox/back.jpg"
+		})
+	);
+	skybox_shader.activate();
+	skybox_shader.setInt("skybox", 0);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, skybox);
+
+	Shadow shadow(light_block);
+	GameTime time(screen.getTime());
+
+	return GameData{screen, camera, world, models, cube, light_block, light_shader, skybox_shader, default_shader, skybox, shadow, time};
 }
 
-void processMouseInput(GLFWwindow* const window, const float delta_time, Camera& camera)
+GLuint loadCubemap(const std::vector<std::string>& faces)
 {
-	if (!USE_MOUSE) return;
-	static bool is_sprinting = false;
-	bool moved = false;
-
-	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
-		glfwSetWindowShouldClose(window, true);
-	}
-
-	if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
-		is_sprinting = true;
-	}
-	const float velocity = delta_time * (is_sprinting ? MAX_SPEED : BASE_SPEED);
-
-	if ((glfwGetKey(window, GLFW_KEY_COMMA) == GLFW_PRESS) || (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)) {
-		camera.processMovement(Camera::Movement::Forward, velocity);
-		moved = true;
-	}
-	if ((glfwGetKey(window, GLFW_KEY_O) == GLFW_PRESS) || (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)) {
-		camera.processMovement(Camera::Movement::Backward, velocity);
-		moved = true;
-	}
-	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
-		camera.processMovement(Camera::Movement::Left, velocity);
-		moved = true;
-	}
-	if ((glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) || (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)) {
-		camera.processMovement(Camera::Movement::Right, velocity);
-		moved = true;
-	}
-	if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
-		camera.processMovement(Camera::Movement::Up, velocity);
-		moved = true;
-	}
-	if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) {
-		camera.processMovement(Camera::Movement::Down, velocity);
-		moved = true;
-	}
-
-	is_sprinting &= moved;
-}
-
-void processGamepadInput(GLFWwindow* const window, const float delta_time, Camera& camera)
-{
-	if (!USE_GAMEPAD) return;
-	static bool is_sprinting = false;
-
-	GLFWgamepadstate state;
-	for (unsigned int i=0; i < (unsigned int)joystick_ids.size(); i++) {
-		if (!glfwGetGamepadState(i, &state)) continue;
-
-		is_sprinting |= state.buttons[GLFW_GAMEPAD_BUTTON_LEFT_THUMB];
-		bool moved = false;
-		const float velocity = delta_time * (is_sprinting ? MAX_SPEED : BASE_SPEED);
-		float right_x_offset = 0;
-		float right_y_offset = 0;
-
-		if (state.buttons[GLFW_GAMEPAD_BUTTON_START]) {
-			glfwSetWindowShouldClose(window, true);
-		}
-		if (std::abs(state.axes[GLFW_GAMEPAD_AXIS_LEFT_Y]) > MIN_DEAD_ZONE) {
-			camera.processMovement(Camera::Movement::Forward, velocity * -state.axes[GLFW_GAMEPAD_AXIS_LEFT_Y]);
-			moved = true;
-		}
-		if (std::abs(state.axes[GLFW_GAMEPAD_AXIS_LEFT_X]) > MIN_DEAD_ZONE) {
-			camera.processMovement(Camera::Movement::Right, velocity * state.axes[GLFW_GAMEPAD_AXIS_LEFT_X]);
-			moved = true;
-		}
-		if (state.buttons[GLFW_GAMEPAD_BUTTON_A]) {
-			camera.processMovement(Camera::Movement::Up, velocity);
-			moved = true;
-		}
-		if (state.buttons[GLFW_GAMEPAD_BUTTON_B]) {
-			camera.processMovement(Camera::Movement::Down, velocity);
-			moved = true;
-		}
-		if (abs(state.axes[GLFW_GAMEPAD_AXIS_RIGHT_X]) > MIN_DEAD_ZONE) {
-			right_x_offset = state.axes[GLFW_GAMEPAD_AXIS_RIGHT_X] * JOYSTICK_SENSITIVITY;
-		}
-		if (abs(state.axes[GLFW_GAMEPAD_AXIS_RIGHT_Y]) > MIN_DEAD_ZONE) {
-			right_y_offset = -state.axes[GLFW_GAMEPAD_AXIS_RIGHT_Y] * JOYSTICK_SENSITIVITY;
-		}
-
-		camera.processJoystickRotation(right_x_offset, right_y_offset);
-		is_sprinting &= moved;
-	}
-}
-
-void framebufferSizeCallback(GLFWwindow* window, const int width, const int height)
-{
-	// make sure the viewport matches the new window dimensions
-	// width and height will be significantly larger than specified on retina displays.
-	glViewport(0, 0, width, height);
-}
-
-void cursorPosCallback(GLFWwindow* const window, const double xpos, const double ypos)
-{
-	Camera* const camera = reinterpret_cast<Camera*>(glfwGetWindowUserPointer(window));
-	if (!camera) {
-		LOG("Failed to access camera in cursor position callback")
-	}
-
-	static double lastX = xpos;
-	static double lastY = ypos;
-
-	const float xoffset = xpos - lastX;
-	// y moves from bottom to top
-	const float yoffset = lastY - ypos;
-
-	lastX = xpos;
-	lastY = ypos;
-
-	camera->processMouseRotation(xoffset, yoffset);
-}
-
-void scrollCallback(GLFWwindow* const window, const double xoffset, const double yoffset)
-{
-	if (Camera* camera = reinterpret_cast<Camera*>(glfwGetWindowUserPointer(window))) {
-		camera->processZoom(yoffset);
-	} else {
-		LOG("Failed to access camera in scroll callback")
-	}
-}
-
-void joystickCallback(const int jid, const int event)
-{
-	if ((event == GLFW_CONNECTED) && glfwJoystickIsGamepad(jid)) {
-		joystick_ids.emplace(jid);
-	} else {
-		joystick_ids.erase(jid);
-	}
-}
-
-void initJoysticks()
-{
-	joystick_ids.clear();
-	for (int i=GLFW_JOYSTICK_1; i <= GLFW_JOYSTICK_LAST; i++) {
-		if (glfwJoystickIsGamepad(i)) {
-			joystick_ids.emplace();
-		}
-	}
-}
-
-unsigned int loadCubemap(const std::vector<std::string>& faces)
-{
-    unsigned int textureID;
+    GLuint textureID;
     glGenTextures(1, &textureID);
     glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
 	
@@ -290,54 +166,6 @@ void renderScene(const glm::mat4& view, const glm::mat4& projection, const Shade
 	}
 }
 
-void imguiStartFrame(LightBlock& light_block, bool* p_open)
-{
-	ImGui_ImplOpenGL3_NewFrame();
-	ImGui_ImplGlfw_NewFrame();
-	ImGui::NewFrame();
-
-    const ImGuiViewport* main_viewport = ImGui::GetMainViewport();
-    ImGui::SetNextWindowPos(ImVec2(main_viewport->WorkPos.x + 10, main_viewport->WorkPos.y + 10), ImGuiCond_FirstUseEver);
-    ImGui::SetNextWindowSize(ImVec2(SCR_WIDTH, SCR_HEIGHT), ImGuiCond_FirstUseEver);
-
-    // Main body of the Demo window starts here.
-    if (!ImGui::Begin("Dear ImGui", p_open, 0))
-    {
-        // Early out if the window is collapsed, as an optimization.
-        ImGui::End();
-        return;
-    }
-
-    ImGui::End();
-}
-
-void imguiEndFrame()
-{
-	ImGui::Render();
-	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-}
-
-void imguiInit(GLFWwindow* window)
-{
-	IMGUI_CHECKVERSION();
-	ImGui::CreateContext();
-	ImGuiIO& io = ImGui::GetIO();
-	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
-	ImGui_ImplGlfw_InitForOpenGL(window, true);
-	ImGui_ImplOpenGL3_Init(nullptr);
-}
-
-void imguiShutdown() {
-	ImGui_ImplOpenGL3_Shutdown();
-	ImGui_ImplGlfw_Shutdown();
-	ImGui::DestroyContext();
-}
-
-void shutdown()
-{
-	glfwTerminate();
-}
-
 glm::mat4 lightModelMatrix(const DirectionalLight& light, const glm::vec3& camera_pos) {
 	glm::mat4 model = glm::mat4(1.0f);
 	model = glm::translate(model, camera_pos + (glm::vec3(-light.dir) * FAR_PLANE));
@@ -349,7 +177,6 @@ template <typename T>
 glm::mat4 lightModelMatrix(const T& light, [[maybe_unused]] const glm::vec3& camera_pos) {
 	glm::mat4 model = glm::mat4(1.0f);
 	model = glm::translate(model, glm::vec3(light.pos));
-	model = glm::scale(model, glm::vec3(10.0f));
 	return model;
 }
 template
@@ -366,7 +193,6 @@ void drawLight(const Model& model, const Shader& shader, const std::vector<T>& l
 		const T cur_light = lights[i];
 		if ((glm::all(glm::equal(cur_light.color.ambient, zero))) &&
 			(glm::all(glm::equal(cur_light.color.diffuse, zero))) &&
-
 			(glm::all(glm::equal(cur_light.color.specular, zero)))) {
 			return;
 		}

@@ -1,7 +1,7 @@
 #ifndef WORLD_H
 #define WORLD_H
 
-enum class BlockId : unsigned int;
+struct BlockId;
 
 #include "glm/mat4x4.hpp"
 #include "glm/mat3x3.hpp"
@@ -17,8 +17,12 @@ public:
 	using Registry = entt::basic_registry<uint64_t>;
 	using Entity = Registry::entity_type;
 
-	World();
+	World() noexcept;
 	~World();
+	World(const World& other) = delete;
+	World(World&& other) noexcept;
+	World& operator=(const World& other) = delete;
+	World& operator=(World&& other) = delete;
 
 	void reset();
 	// attach instancing buffers to VAO
@@ -43,6 +47,8 @@ public:
 	inline static const float noise_scale = 0.01f;
 	// path to save to disk
 	inline static const std::string world_path = "./world.bin";
+	// blocks are 1m wide
+	inline static constexpr float block_half_length = .5;
 private:
 	// procedurally generate registry
 	void generateWorld();

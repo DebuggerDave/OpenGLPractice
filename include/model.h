@@ -19,7 +19,13 @@ class aiMesh;
 class Model 
 {
     public:
-        Model(const std::string& path, BlockId id = BlockId::NoneOrNumIDs);
+        Model(const std::string& path, BlockId id = BlockId::Name::None) noexcept;
+	    ~Model() = default;
+	    Model(const Model& other) = delete;
+	    Model(Model&& other) noexcept = default;
+	    Model& operator=(const Model& other) = delete;
+	    Model& operator=(Model&& other) = delete;
+
         // draw number of instances indicated by num, zero draws without instancing
         void draw(const Shader& shader, const unsigned int num = 0) const;
         // add a vertex attribute array of vec4s for instance rendering

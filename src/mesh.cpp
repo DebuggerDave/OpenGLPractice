@@ -13,7 +13,11 @@
 #include <cmath>
 #include <type_traits>
 
-Mesh::Mesh(const std::vector<Vertex>& vertices, const std::vector<unsigned int>& indices, const std::vector<Texture>& textures) :
+Mesh::Mesh(
+    const std::vector<Vertex>& vertices,
+    const std::vector<unsigned int>& indices,
+    const std::vector<Texture>& textures
+) noexcept :
     VAO(0), VBO(0), EBO(0),
     vertices(vertices), indices(indices), textures(textures)
 {
@@ -53,8 +57,8 @@ void Mesh::draw(const Shader& shader, const unsigned int num) const
     if (textures.size() > GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS) {
         LOG("unable to use all textures, exceeded max texture units")
     }
-    size_t num_tex = std::min((size_t)GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, textures.size());
-    for(unsigned int tex_nums[(int)TexType::NumTexTypes]={0}, i=0; i < num_tex; i++)
+    size_t num_tex = utils::min(static_cast<size_t>(GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS), textures.size());
+    for(unsigned int tex_nums[static_cast<unsigned int>(TexType::NumTexTypes)]={0}, i=0; i < num_tex; i++)
     {
         TexType type = textures[i].type;
         std::string uniform;

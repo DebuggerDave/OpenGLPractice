@@ -1,187 +1,73 @@
-#include "shader.h"
-#include "camera.h"
-#include "model.h"
-#include "utils.h"
-#include "light_block.h"
-#include "light_uniform_buffer.h"
-#include "world.h"
-#include "component.h"
-#include "constants.h"
 #include "system_utils.h"
-#include "game_time.h"
+#include "constants.h"
 
-#include "glm/vec3.hpp"
+#include "glm/mat4x4.hpp"
+#include "glm/mat3x3.hpp"
 #include "glm/vec4.hpp"
 #include "glm/ext/matrix_clip_space.hpp"
 #include "glm/geometric.hpp"
 #include "glm/trigonometric.hpp"
-#include "glm/gtc/type_ptr.hpp"
-#include "GLFW/glfw3.h"
-
-#include <vector>
-#include <memory>
 
 int main()
 {
-	Camera camera(0, World::terrain_median_height + World::terrain_amplitude, 0);
+	GameData game_data = init();
 
-	GLFWwindow* window = init(camera);
-	if (!window) {
-		LOG("Failed to initialize program")
-		return -1;
-	}
-
-	World world;
-
-	std::vector<Model> models;
-	models.push_back(Model("./assets/other_3d/grass.obj", BlockId::Grass));
-	models.push_back(Model("./assets/other_3d/dirt.obj", BlockId::Dirt));
-	models.push_back(Model("./assets/other_3d/cobblestone.obj", BlockId::Cobblestone));
-	Model cube("./assets/other_3d/cube.obj");
-	
-	for (const Model& model : models) {
-		model.setupInstancing(world);
-	}
-
-	std::shared_ptr<LightBlock> light_block = LightBlock::makeShared();
-	LightColor black{glm::vec4{0.0f}, glm::vec4(0.0f), glm::vec4(0.0f)};
-	light_block->updateColor(LightBlock::LightType::Spot, 0, black);
-	light_block->updateColor(LightBlock::LightType::Point, 0, black);
-	light_block->allocate();
-
-	Shader light_shader("./glsl/light.vert", "./glsl/light.frag");
-	light_shader.addLights(Shader::ProgramType::Fragment, light_block);
-	light_shader.compile();
-	Shader skybox_shader("./glsl/skybox.vert", "./glsl/skybox.frag");
-	skybox_shader.compile();
-	Shader default_shader("./glsl/default.vert", "./glsl/default.frag");
-	default_shader.addLights(Shader::ProgramType::Fragment, light_block);
-	default_shader.compile();
-	Shader shadow_shader("./glsl/shadow.vert", "./glsl/shadow.frag");
-	shadow_shader.compile();
-
-	default_shader.activate();
-	default_shader.setFloat("material.shininess", std::pow(2, 4));
-
-	unsigned int skybox = loadCubemap(
-		std::vector<std::string>({
-			"./assets/skybox/right.jpg",
-			"./assets/skybox/left.jpg",
-			"./assets/skybox/top.jpg",
-			"./assets/skybox/bottom.jpg",
-			"./assets/skybox/front.jpg",
-			"./assets/skybox/back.jpg"
-		})
-	);
-	skybox_shader.activate();
-	skybox_shader.setInt("skybox", 0);
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_CUBE_MAP, skybox);
-
-	// shadow frame buffer
-	// ----
-	unsigned int depth_map_fbo;
-	glGenFramebuffers(1, &depth_map_fbo);
-
-	unsigned int depth_map;
-	glGenTextures(1, &depth_map);
-	glBindTexture(GL_TEXTURE_2D, depth_map);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT16, SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_SHORT, NULL);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-	glm::vec4 border_color(1.0f, 1.0f, 1.0f, 1.0f);
-	glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, glm::value_ptr(border_color));
-
-	glBindFramebuffer(GL_FRAMEBUFFER, depth_map_fbo);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depth_map, 0);
-	glDrawBuffer(GL_NONE);
-	glReadBuffer(GL_NONE);
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-	float delta_time = 0.0f;
-	float last_frame_time = 0.0f;
-	GameTime time(glfwGetTime());
-	// render loop
-	while (!glfwWindowShouldClose(window))
+	while (!game_data.screen.shouldClose())
 	{
-		// per-frame time logic
-		float frame_time = glfwGetTime();
-		delta_time = frame_time - last_frame_time;
+		// time update
+		static float last_frame_time = 0.0f;
+		const float frame_time = game_data.screen.getTime();
+		const float delta_time = frame_time - last_frame_time;
 		last_frame_time = frame_time;
+		game_data.time.update(frame_time);
 
-		// input
-		processInput(window, delta_time, camera);
+		// input update
+		game_data.screen.processInput(delta_time);
 
-		time.update(frame_time);
-		light_block->updateDirection(LightBlock::LightType::Directional, 0, glm::normalize(glm::vec4(time.getSunXDir(), time.getSunYDir(), 0.0f, 0.0f)));
+		// light update
+		game_data.light_block->updateDirection(LightBlock::LightType::Directional, 0, glm::normalize(glm::vec4(game_data.time.getSunXDir(), game_data.time.getSunYDir(), 0.0f, 0.0f)));
+		game_data.light_block->updatePosition(LightBlock::LightType::Spot, 0, glm::vec4(game_data.camera->getPosition(), 1.0f));
+		game_data.light_block->updateDirection(LightBlock::LightType::Spot, 0, glm::normalize(glm::vec4(game_data.camera->getFront(), 0.0f)));
 
-		// start rendering
-		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		// transform update
+		glm::mat4 projection = glm::perspective(glm::radians(game_data.camera->getZoom()), static_cast<float>(SCR_WIDTH) / SCR_HEIGHT, NEAR_PLANE, FAR_PLANE);
+		glm::mat4 view = game_data.camera->getViewMatrix();
+		game_data.world.updateNormalMats(view);
 
-		// transformations
-		glm::mat4 projection = glm::perspective(glm::radians(camera.getZoom()), (float)SCR_WIDTH / (float)SCR_HEIGHT, NEAR_PLANE, FAR_PLANE);
-		glm::mat4 view = camera.getViewMatrix();
+		// shadow render
+		game_data.shadow.renderDepthmap(game_data.camera->getPosition(), game_data.models, game_data.world);
 
-		world.updateNormalMats(view);
-
-		float shadow_render_distance = 100;
-		glm::vec3 world_up(0.0, 1.0, 0.0);
-		glm::vec3 light_position((glm::vec3(-light_block->read().directional_lights[0].dir) * ((shadow_render_distance/2) + SHADOW_NEAR_PLANE)) + camera.getPosition());
-		glm::vec3 light_front(light_block->read().directional_lights[0].dir);
-		glm::vec3 light_right(glm::normalize(glm::cross(light_front, world_up)));
-		glm::vec3 light_up(glm::normalize(glm::cross(light_right, light_front)));
-		glm::mat4 light_view = glm::lookAt(light_position, light_position + light_front, light_up);
-		glm::mat4 light_projection = glm::ortho(-shadow_render_distance/2, shadow_render_distance/2, -shadow_render_distance/2, shadow_render_distance/2, SHADOW_NEAR_PLANE, shadow_render_distance + SHADOW_NEAR_PLANE);
-
-		// shadows
-		// ----
-		glCullFace(GL_FRONT);
-		glPolygonOffset(1.0f, 1.0f);
-		glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
-		glBindFramebuffer(GL_FRAMEBUFFER, depth_map_fbo);
-		glClear(GL_DEPTH_BUFFER_BIT);
-		renderScene(light_view, light_projection, shadow_shader, models, world);
+		// world render
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
-		glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
-		glPolygonOffset(0.0f, 0.0f);
-		glCullFace(GL_BACK);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-		default_shader.activate();
-		default_shader.setInt("depth_map", 16);
 		glActiveTexture(GL_TEXTURE0 + 16);
-		glBindTexture(GL_TEXTURE_2D, depth_map);
-		default_shader.setMat4("view", view);
-		default_shader.setMat4("projection", projection);
-		default_shader.setMat4("light_view", light_view);
-		default_shader.setMat4("light_projection", light_projection);
-		renderScene(view, projection, default_shader, models, world);
+		glBindTexture(GL_TEXTURE_2D, game_data.shadow.getDepthMap());
+		game_data.default_shader.activate();
+		game_data.default_shader.setInt("depth_map", 16);
+		game_data.default_shader.setMat4("light_view", game_data.shadow.getView());
+		game_data.default_shader.setMat4("light_projection", game_data.shadow.getProjection());
+		renderScene(view, projection, game_data.default_shader, game_data.models, game_data.world);
 
-		// lights
-		// ----
-		light_shader.activate();
-		light_shader.setMat4("view", view);
-		light_shader.setMat4("projection", projection);
-		drawLight(cube, light_shader, light_block->read().directional_lights, camera.getPosition());
-		drawLight(cube, light_shader, light_block->read().spot_lights, camera.getPosition());
-		drawLight(cube, light_shader, light_block->read().point_lights, camera.getPosition());
+		// light render
+		game_data.light_shader.activate();
+		game_data.light_shader.setMat4("view", view);
+		game_data.light_shader.setMat4("projection", projection);
+		drawLight(game_data.cube, game_data.light_shader, game_data.light_block->read().directional_lights, game_data.camera->getPosition());
+		drawLight(game_data.cube, game_data.light_shader, game_data.light_block->read().spot_lights, game_data.camera->getPosition());
+		drawLight(game_data.cube, game_data.light_shader, game_data.light_block->read().point_lights, game_data.camera->getPosition());
 
-		// skybox
+		// skybox render
+		GLint cull_mode;
+		glGetIntegerv(GL_CULL_FACE_MODE, &cull_mode);
 		glCullFace(GL_FRONT);
-		skybox_shader.activate();
-		skybox_shader.setMat4("view", glm::mat4(glm::mat3(view)));
-		skybox_shader.setMat4("projection", projection);
-		cube.draw(skybox_shader);
-		glCullFace(GL_BACK);
+		game_data.skybox_shader.activate();
+		game_data.skybox_shader.setMat4("view", glm::mat4(glm::mat3(view)));
+		game_data.skybox_shader.setMat4("projection", projection);
+		game_data.cube.draw(game_data.skybox_shader);
+		glCullFace(cull_mode);
 
-		// glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
-		glfwSwapBuffers(window);
-		glfwPollEvents();
+		game_data.screen.endFrame();
 	}
 
-	shutdown();
 	return 0;
 }

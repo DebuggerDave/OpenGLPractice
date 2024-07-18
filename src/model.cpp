@@ -18,7 +18,7 @@
 #include <vector>
 #include <unordered_map>
 
-Model::Model(const std::string& path, BlockId id) : id(id)
+Model::Model(const std::string& path, BlockId id) noexcept : id(id)
 {
 	loadModel(path);
 }
@@ -32,7 +32,7 @@ void Model::draw(const Shader& shader, const unsigned int num) const
 
 void Model::setupInstancing(const World& world) const
 {
-    if (id == BlockId::NoneOrNumIDs) {
+    if (id == BlockId::Name::None) {
         LOG("Failed to setup instancing, no valid block ID")
         return;
     }

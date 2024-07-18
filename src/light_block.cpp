@@ -12,6 +12,7 @@
 #include <string>
 #include <vector>
 #include <memory>
+#include <utility>
 
 LightColor::LightColor(const glm::vec4& ambient, const glm::vec4& diffuse, const glm::vec4& specular) :
 	ambient{ambient},
@@ -45,16 +46,28 @@ PointLight::PointLight() :
 	pos{glm::vec4(0.0f)}
 	{}
 
+LightBlock::LightBlock(const size_t num_directional_lights, const size_t num_spot_lights, const size_t num_point_lights) noexcept :
+	uni_buff{
+		.directional_lights{std::vector<DirectionalLight>(utils::max(1, num_directional_lights))},
+		.spot_lights{std::vector<SpotLight>(utils::max(1, num_spot_lights))},
+		.point_lights{std::vector<PointLight>(utils::max(1, num_point_lights))}
+	}
+{
+	if ((num_directional_lights < 1) ||  (num_spot_lights < 1) || (num_point_lights < 1)) {
+		LOG("Cannot construct LightBlock with lights of size zero, defaulting to size one");
+	}
+}
+
 LightBlock::~LightBlock()
 {
 	deallocate();
 }
 
-std::shared_ptr<LightBlock> LightBlock::makeShared(const size_t num_directional_lights, const size_t num_spot_lights, const size_t num_point_lights) {
-	if ((num_directional_lights < 1) ||  (num_spot_lights < 1) || (num_point_lights < 1)) {
-		LOG("LightBlock cannot have lights of size zero")
-	}
-	return std::shared_ptr<LightBlock>{new LightBlock{num_directional_lights, num_spot_lights, num_point_lights}};
+LightBlock::LightBlock(LightBlock&& other) noexcept
+{
+	id = std::exchange(other.id, 0);
+	shader_code = std::move(other.shader_code);
+	uni_buff = std::move(other.uni_buff);
 }
 
 template<typename T>
@@ -97,22 +110,21 @@ bool LightBlock::updateDirection(const LightType type, const size_t index, const
 	switch (type)
 	{
 		case LightType::Directional:
-			if (index > uni_buff.directional_lights.size()) {
+			if (index >= uni_buff.directional_lights.size()) {
 				LOG("Unable to update light direction, invalid index")
 				return false;
 			}
 			uni_buff.directional_lights[index].dir = direction;
-			offset = offsetof(decltype(uni_buff), directional_lights)
-			+ offsetof(decltype(uni_buff.directional_lights)::value_type, dir)
+			offset = offsetof(decltype(uni_buff.directional_lights)::value_type, dir)
 			+ (sizeof(DirectionalLight) * index);
 			break;
 		case LightType::Spot:
-			if (index > uni_buff.spot_lights.size()) {
+			if (index >= uni_buff.spot_lights.size()) {
 				LOG("Unable to update light direction, invalid index")
 				return false;
 			}
 			uni_buff.spot_lights[index].dir = direction;
-			offset = offsetof(decltype(uni_buff), spot_lights)
+			offset = sizeof(decltype(uni_buff.directional_lights)::value_type) * uni_buff.directional_lights.size()
 			+ offsetof(decltype(uni_buff.spot_lights)::value_type, dir)
 			+ (sizeof(SpotLight) * index);
 			break;
@@ -138,33 +150,33 @@ bool LightBlock::updateColor(const LightType type, const size_t index, const Lig
 	switch (type)
 	{
 		case LightType::Directional:
-			if (index > uni_buff.directional_lights.size()) {
+			if (index >= uni_buff.directional_lights.size()) {
 				LOG("Unable to update light color, invalid index")
 				return false;
 			}
-			uni_buff.spot_lights[index].color = color;
-			offset = offsetof(decltype(uni_buff), directional_lights)
-				+ offsetof(decltype(uni_buff.directional_lights)::value_type, color)
+			uni_buff.directional_lights[index].color = color;
+			offset = offsetof(decltype(uni_buff.directional_lights)::value_type, color)
 				+ (sizeof(DirectionalLight) * index);
 			return false;
 			break;
 		case LightType::Spot:
-			if (index > uni_buff.spot_lights.size()) {
+			if (index >= uni_buff.spot_lights.size()) {
 				LOG("Unable to update light color, invalid index")
 				return false;
 			}
 			uni_buff.spot_lights[index].color = color;
-			offset = offsetof(decltype(uni_buff), spot_lights)
+			offset = sizeof(decltype(uni_buff.directional_lights)::value_type) * uni_buff.directional_lights.size()
 				+ offsetof(decltype(uni_buff.spot_lights)::value_type, color)
 				+ (sizeof(SpotLight) * index);
 			break;
 		case LightType::Point:
-			if (index > uni_buff.point_lights.size()) {
+			if (index >= uni_buff.point_lights.size()) {
 				LOG("Unable to update light color, invalid index")
 				return false;
 			}
 			uni_buff.point_lights[index].color = color;
-			offset = offsetof(decltype(uni_buff), point_lights)
+			offset = sizeof(decltype(uni_buff.directional_lights)::value_type) * uni_buff.directional_lights.size()
+				+ sizeof(decltype(uni_buff.spot_lights)::value_type) * uni_buff.spot_lights.size()
 				+ offsetof(decltype(uni_buff.point_lights)::value_type, color)
 				+ (sizeof(PointLight) * index);
 			break;
@@ -191,22 +203,23 @@ bool LightBlock::updatePosition(const LightType type, const size_t index, const 
 			break;
 
 		case LightType::Spot:
-			if (index > uni_buff.spot_lights.size()) {
+			if (index >= uni_buff.spot_lights.size()) {
 				LOG("Unable to update light position, invalid index")
 				return false;
 			}
 			uni_buff.spot_lights[index].pos = position;
-			offset = offsetof(decltype(uni_buff), spot_lights)
+			offset = sizeof(decltype(uni_buff.directional_lights)::value_type) * uni_buff.directional_lights.size()
 				+ offsetof(decltype(uni_buff.spot_lights)::value_type, pos)
 				+ (sizeof(SpotLight) * index);
 			break;
 		case LightType::Point:
-			if (index > uni_buff.point_lights.size()) {
+			if (index >= uni_buff.point_lights.size()) {
 				LOG("Unable to update light position, invalid index")
 				return false;
 			}
 			uni_buff.point_lights[index].pos = position;
-			offset = offsetof(decltype(uni_buff), point_lights)
+			offset = sizeof(decltype(uni_buff.directional_lights)::value_type) * uni_buff.directional_lights.size()
+				+ sizeof(decltype(uni_buff.spot_lights)::value_type) * uni_buff.spot_lights.size()
 				+ offsetof(decltype(uni_buff.point_lights)::value_type, pos)
 				+ (sizeof(PointLight) * index);
 			break;
@@ -278,6 +291,7 @@ bool LightBlock::allocate()
 	bytes += vecMemCopy((unsigned char*)buffer.get() + bytes, uni_buff.spot_lights);
 	bytes += vecMemCopy((unsigned char*)buffer.get() + bytes, uni_buff.point_lights);
 
+	// TODO should I verify size here?
 	if (bytes != byteSize()) {
 		LOG("Unibuff data missing in allocation calculation")
 		return false;
@@ -294,14 +308,6 @@ void LightBlock::deallocate()
 	id = 0;
 	shader_code = {};
 }
-
-LightBlock::LightBlock(const size_t num_directional_lights, const size_t num_spot_lights, const size_t num_point_lights) :
-	uni_buff{
-		.directional_lights{std::vector<DirectionalLight>(num_directional_lights)},
-		.spot_lights{std::vector<SpotLight>(num_spot_lights)},
-		.point_lights{std::vector<PointLight>(num_point_lights)}
-	}
-	{}
 
 void LightBlock::addLight(const DirectionalLight& light)
 {

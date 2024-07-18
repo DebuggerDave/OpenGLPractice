@@ -14,7 +14,7 @@
 
 #include "glad/gl.h"
 
-#include "GLFW/glfw3.h"
+#include "glfw.h"
 
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"

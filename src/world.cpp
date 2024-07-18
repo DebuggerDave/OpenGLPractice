@@ -2,7 +2,6 @@
 
 #include "component.h"
 #include "utils.h"
-#include "constants.h"
 
 #include "glm/mat4x4.hpp"
 #include "glm/mat3x3.hpp"
@@ -19,12 +18,13 @@
 #include <vector>
 #include <random>
 #include <fstream>
+#include <utility>
 
-World::World() :
-	instancing_model_buffers((unsigned int)BlockId::NoneOrNumIDs),
-	instancing_normal_mat_buffers((unsigned int)BlockId::NoneOrNumIDs),
-	instancing_models((unsigned int)BlockId::NoneOrNumIDs),
-	instancing_normal_mats((unsigned int)BlockId::NoneOrNumIDs)
+World::World() noexcept :
+	instancing_model_buffers((unsigned int)BlockId::NumNames),
+	instancing_normal_mat_buffers((unsigned int)BlockId::NumNames),
+	instancing_models((unsigned int)BlockId::NumNames),
+	instancing_normal_mats((unsigned int)BlockId::NumNames)
 {
 	glCreateBuffers(instancing_model_buffers.size(), instancing_model_buffers.data());
 	glCreateBuffers(instancing_normal_mat_buffers.size(), instancing_normal_mat_buffers.data());
@@ -38,9 +38,24 @@ World::World() :
 
 World::~World()
 {
-	saveAll();
+	const Registry::iterable& it = world_registry.storage();
+	if (it.begin() != it.end()) {
+		saveAll();
+	}
 	glDeleteBuffers(instancing_model_buffers.size(), instancing_model_buffers.data());
 	glDeleteBuffers(instancing_normal_mat_buffers.size(), instancing_normal_mat_buffers.data());
+}
+
+World::World(World&& other) noexcept :
+	instancing_model_buffers{std::exchange(other.instancing_model_buffers, {})},
+	instancing_normal_mat_buffers{std::exchange(other.instancing_normal_mat_buffers, {})},
+	instancing_models{std::move(other.instancing_models)},
+	instancing_normal_mats{std::move(other.instancing_normal_mats)},
+	connections{}
+{
+	other.disconnect();
+	world_registry = std::exchange(other.world_registry, {});
+	connect();
 }
 
 void World::reset()
@@ -69,7 +84,7 @@ void World::setupInstancing(const GLuint VAO, const GLuint vertex_attrib_index, 
 
     glBindVertexArray(VAO);
 
-    glBindBuffer(GL_ARRAY_BUFFER, instancing_model_buffers[(unsigned int)id]);
+    glBindBuffer(GL_ARRAY_BUFFER, instancing_model_buffers[id.uint()]);
 	num_components = 4;
 	stride = sizeof(glm::mat4);
 	end_index = cur_index + 4;
@@ -78,7 +93,7 @@ void World::setupInstancing(const GLuint VAO, const GLuint vertex_attrib_index, 
 		setupAttribArray(cur_index, num_components, stride, pointer);
     }
 
-    glBindBuffer(GL_ARRAY_BUFFER, instancing_normal_mat_buffers[(unsigned int)id]);
+    glBindBuffer(GL_ARRAY_BUFFER, instancing_normal_mat_buffers[id.uint()]);
 	num_components = 3;
 	stride = sizeof(glm::mat3);
 	end_index = cur_index + 3;
@@ -90,11 +105,11 @@ void World::setupInstancing(const GLuint VAO, const GLuint vertex_attrib_index, 
 
 size_t World::numObjects(const BlockId id) const
 {
-	if (instancing_models[(unsigned int)id].size() != instancing_normal_mats[(unsigned int)id].size()) {
+	if (instancing_models[id.uint()].size() != instancing_normal_mats[id.uint()].size()) {
 		LOG("Unexpected size of instancing vector")
 	}
 	
-	return instancing_models[(unsigned int)id].size();
+	return instancing_models[id.uint()].size();
 }
 
 void World::updateNormalMats(const glm::mat4& view)
@@ -137,18 +152,18 @@ void World::generateWorld()
 			const float noise = perlin.normalizedOctave2D(perlin_x, perlin_z, 3/*octaves*/, 0.5f/*persistence*/);
 			const float adjusted_noise = std::roundf(noise * terrain_amplitude + terrain_median_height);
 			// add block_half length so that blocks meet at whole numbers
-			const float surface_level_position = adjusted_noise + (utils::sign(adjusted_noise) * BLOCK_HALF_LENGTH);
-			const float bedrock_position = min_height + BLOCK_HALF_LENGTH;
+			const float surface_level_position = adjusted_noise + (utils::sign(adjusted_noise) * block_half_length);
+			const float bedrock_position = min_height + block_half_length;
 			for (float y=bedrock_position; y<=surface_level_position; y++) {
 				Registry::entity_type entity = world_registry.create();
-				// center around zero, on increments of BLOCK_HALF_LENGTH
-				const float float_x = (x + BLOCK_HALF_LENGTH) - (chunk_size / 2.0f);
-				const float float_z = (z + BLOCK_HALF_LENGTH) - (chunk_size / 2.0f);
+				// center around zero, on increments of block_half_length
+				const float float_x = (x + block_half_length) - (chunk_size / 2.0f);
+				const float float_z = (z + block_half_length) - (chunk_size / 2.0f);
 				world_registry.emplace<Position>(entity, float_x, y, float_z);
 				if (y < surface_level_position) {
-					world_registry.emplace<BlockId>(entity, BlockId::Dirt);
+					world_registry.emplace<BlockId>(entity, BlockId::Name::Dirt);
 				} else {
-					world_registry.emplace<BlockId>(entity, BlockId::Grass);
+					world_registry.emplace<BlockId>(entity, BlockId::Name::Grass);
 				}
 			}
 		}
@@ -212,10 +227,10 @@ void World::onPositionBlockIdConstruct(const Registry& registry, const Entity en
 	glm::mat4 model = glm::mat4(1.0f);
 	model = glm::translate(model, pos);
 
-	instancing_models[(unsigned int)id].push_back(std::move(model));
-	instancing_normal_mats[(unsigned int)id].push_back(glm::mat3(1.0f));
+	instancing_models[id.uint()].push_back(std::move(model));
+	instancing_normal_mats[id.uint()].push_back(glm::mat3(1.0f));
 	// append it to the appropriate buffer
-	updateInstancingBuffers(id, true, (instancing_models[(unsigned int)id].size() - 1));
+	updateInstancingBuffers(id, true, (instancing_models[id.uint()].size() - 1));
 }
 
 void World::onPositionBlockIdDestruct(const Registry& registry, const Entity entity)
@@ -226,7 +241,7 @@ void World::onPositionBlockIdDestruct(const Registry& registry, const Entity ent
 	const BlockId id = registry.get<BlockId>(entity);
 	const glm::vec3& pos = registry.get<Position>(entity).vec3;
 	// TODO do I really need this?
-	if ((instancing_models[(unsigned int)id].size() == 0) || (instancing_normal_mats[(unsigned int)id].size() == 0)) {
+	if ((instancing_models[id.uint()].size() == 0) || (instancing_normal_mats[id.uint()].size() == 0)) {
 		LOG("Instancing data size does not match entt registry")
 		return;
 	}
@@ -234,25 +249,15 @@ void World::onPositionBlockIdDestruct(const Registry& registry, const Entity ent
 	using ModelType = decltype(instancing_models)::value_type::value_type;
 	using NormalMatType = decltype(instancing_normal_mats)::value_type::value_type;
 
-	std::vector<ModelType>& model_vec = instancing_models[(unsigned int)id];
-	std::vector<NormalMatType>& normal_mat_vec = instancing_normal_mats[(unsigned int)id];
+	std::vector<ModelType>& model_vec = instancing_models[id.uint()];
+	std::vector<NormalMatType>& normal_mat_vec = instancing_normal_mats[id.uint()];
 	for (unsigned int i=0; i < (unsigned int)model_vec.size(); i++) {
 		// row 3 of a 4x4 is the translation
 		if (glm::vec3(model_vec[i][3]) != pos) {
 			continue;
-		// just pop_back if it's the last element
-		} else if ( (model_vec.size() == 1) || (i == (model_vec.size() - 1)) ) {
-			model_vec.pop_back();
-			normal_mat_vec.pop_back();
-			updateInstancingBuffers(id);
-		// write the last element over the deleted one so we can keep it contiguous
 		} else {
-			ModelType temp_pos = model_vec.back();
-			model_vec.pop_back();
-			model_vec[i] = std::move(temp_pos);
-			NormalMatType temp_normal_mat = normal_mat_vec.back();
-			normal_mat_vec.pop_back();
-			normal_mat_vec[i] = std::move(temp_normal_mat);
+			utils::vecSwapPopBack(model_vec, i);
+			utils::vecSwapPopBack(normal_mat_vec, i);
 			updateInstancingBuffers(id, true, i);
 		}
 
@@ -278,50 +283,40 @@ void World::disconnect() {
 }
 
 void World::initInstancingBuffers() {
-	for (unsigned int i = 0; i < (unsigned int)BlockId::NoneOrNumIDs; i++) {
-		updateInstancingBuffers((BlockId)i, false, 0, true);
+	for (unsigned int i = 0; i < BlockId::NumNames; i++) {
+		updateInstancingBuffers(BlockId(i), false, 0, true);
 	}
 }
 
 void World::updateInstancingBuffers(const BlockId id, const bool new_data, const size_t index, const bool force_copy) {
-	using ModelType = decltype(instancing_models)::value_type::value_type;
-	using NormalMatType = decltype(instancing_normal_mats)::value_type::value_type;
-	GLuint buffer;
-	size_t elem_size;
-	size_t vec_capacity_bytes;
-	size_t vec_size_bytes;
-	void const* data;
+	if (!force_copy && new_data && (instancing_models[id.uint()].size() <= index)) { return; }
 
 	for (unsigned int i = 0; i < (unsigned int)num_unique_buffers; i++) {
-		if (i == 0) {
-			elem_size = sizeof(ModelType);
-			const std::vector<ModelType>& vec = instancing_models[(unsigned int)id];
-			buffer = instancing_model_buffers[(unsigned int)id];
-			vec_capacity_bytes = vec.capacity() * elem_size;
-			vec_size_bytes = vec.size() * elem_size;
-			data = vec.data();
-		} else if (i == 1) {
-			elem_size = sizeof(NormalMatType);
-			const std::vector<NormalMatType>& vec = instancing_normal_mats[(unsigned int)id];
-			buffer = instancing_normal_mat_buffers[(unsigned int)id];
-			vec_capacity_bytes = vec.capacity() * elem_size;
-			vec_size_bytes = vec.size() * elem_size;
-			data = vec.data();
-		}
+		auto lambda = [=]<typename T>(const std::vector<T>& vec, GLuint buffer) {
+			using ElemType = std::remove_cvref_t<decltype(vec)>::value_type;
+			constexpr size_t elem_size = sizeof(ElemType);
+			size_t vec_capacity_bytes = vec.capacity() * elem_size;
+			size_t vec_size_bytes = vec.size() * elem_size;
+			void* const data = (void*)vec.data();
 
-		GLint buffer_size;
-		glGetNamedBufferParameteriv(buffer, GL_BUFFER_SIZE, &buffer_size);
-		// an empty buffer object causes errors when binding to a VAO
-		if (((size_t)buffer_size != elem_size) && (vec_capacity_bytes == 0)) {
-			glNamedBufferData(buffer, elem_size, NULL, GL_DYNAMIC_DRAW);
-		// resize following std::vector's amortized complexity
-		} else if ((vec_capacity_bytes != 0) && (force_copy || (vec_capacity_bytes != (size_t)buffer_size))) {
-			glNamedBufferData(buffer, vec_capacity_bytes, NULL, GL_DYNAMIC_DRAW);
-			glNamedBufferSubData(buffer, 0, vec_size_bytes, data);
-		} else if (new_data) {
-			GLintptr offset = index * elem_size;
-			glNamedBufferSubData(buffer, offset, elem_size, (void*)((char*)data + offset));
-		}
+			GLint buffer_size;
+			glGetNamedBufferParameteriv(buffer, GL_BUFFER_SIZE, &buffer_size);
+			// an empty buffer object causes errors when binding to a VAO
+			if ((static_cast<size_t>(buffer_size) != elem_size) && (vec_capacity_bytes == 0)) {
+				glNamedBufferData(buffer, elem_size, NULL, GL_DYNAMIC_DRAW);
+			// resize following std::vector's amortized complexity
+			} else if ((vec_capacity_bytes != 0) && (force_copy || (vec_capacity_bytes != static_cast<size_t>(buffer_size)))) {
+				glNamedBufferData(buffer, vec_capacity_bytes, NULL, GL_DYNAMIC_DRAW);
+				glNamedBufferSubData(buffer, 0, vec_size_bytes, data);
+			} else if (new_data) {
+				GLintptr offset = index * elem_size;
+				glNamedBufferSubData(buffer, offset, elem_size, (void*)((char*)data + offset));
+			}
+		};
+
+		lambda(instancing_models[id.uint()], instancing_model_buffers[id.uint()]);
+		lambda(instancing_normal_mats[id.uint()], instancing_normal_mat_buffers[id.uint()]);
+
 	}
 }
 
@@ -340,8 +335,8 @@ void World::initInstancingData() {
 		glm::mat4 model = glm::mat4(1.0);
 		model = glm::translate(model, pos);
 
-		instancing_models[(unsigned int)id].push_back(std::move(model));
-		instancing_normal_mats[(unsigned int)id].push_back(glm::mat3(1.0f));
+		instancing_models[id.uint()].push_back(std::move(model));
+		instancing_normal_mats[id.uint()].push_back(glm::mat3(1.0f));
 	}
 }
 

@@ -3,15 +3,37 @@
 #include "glm/vec3.hpp"
 #include "cereal/archives/binary.hpp"
 
-Position::Position(float x, float y, float z) : vec3{x, y, z}
-{}
+Position::Position(float x, float y, float z) noexcept : vec3{x, y, z} {}
 
 template<typename Archive>
-void serialize(Archive &archive, Position &position) {
-	glm::vec3& pos = position.vec3;
-    archive(pos.x, pos.y, pos.z);
+void Position::serialize(Archive &archive) {
+    archive(vec3.x, vec3.y, vec3.z);
 }
 template
-void serialize(cereal::BinaryInputArchive &archive, Position &position);
+void Position::serialize(cereal::BinaryInputArchive &archive);
 template
-void serialize(cereal::BinaryOutputArchive &archive, Position &position);
+void Position::serialize(cereal::BinaryOutputArchive &archive);
+
+
+BlockId::BlockId() noexcept : name(NameFirst) {}
+BlockId::BlockId(const unsigned int name) noexcept : name(static_cast<Name>(name)) {}
+BlockId::BlockId(const Name name) noexcept : name(name) {}
+
+unsigned int BlockId::uint() const
+{
+	return static_cast<unsigned int>(name);
+}
+
+BlockId::operator Name() const
+{
+	return name;
+}
+
+template<typename Archive>
+void BlockId::serialize(Archive &archive) {
+    archive(name);
+}
+template
+void BlockId::serialize(cereal::BinaryInputArchive &archive);
+template
+void BlockId::serialize(cereal::BinaryOutputArchive &archive);

@@ -20,12 +20,12 @@ public:
 		Geometry
 	};
 
-	Shader();
+	Shader() noexcept;
 	Shader(std::string&& vertex_path, std::string&& fragment_path, std::string&& geometry_path={});
 	Shader(const std::string& vertex_path, const std::string& fragment_path, const std::string& geometry_path={});
 	~Shader();
 	Shader(const Shader& other) = delete;
-	Shader(Shader&& other) = delete;
+	Shader(Shader&& other) noexcept;
 	Shader& operator=(const Shader& other) = delete;
 	Shader& operator=(Shader&& other) = delete;
 

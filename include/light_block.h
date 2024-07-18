@@ -9,7 +9,6 @@
 
 #include <cstddef>
 #include <string>
-#include <memory>
 #include <vector>
 
 class LightBlock
@@ -21,9 +20,13 @@ public:
 		Point
 	};
 
+	LightBlock(const size_t num_directional_light = 1, const size_t num_spot_light = 1, const size_t num_point_lights = 1) noexcept;
 	~LightBlock();
-	// This class is only accessible through shared pointer
-	static std::shared_ptr<LightBlock> makeShared(const size_t num_directional_light = 1, const size_t num_spot_light = 1, const size_t num_point_lights = 1);
+	LightBlock(const LightBlock& other) = delete;
+	LightBlock(LightBlock&& other) noexcept;
+	LightBlock& operator=(const LightBlock& other) = delete;
+	LightBlock& operator=(LightBlock&& other) = delete;
+
 	// public push back functions
 	template<typename T>
 	bool pushBack(const T& light);
@@ -55,12 +58,6 @@ public:
 	void deallocate();
 
 private:
-	LightBlock(const size_t num_directional_light = 0, const size_t num_spot_light = 0, const size_t num_point_lights = 0);
-	LightBlock(const LightBlock& other) = delete;
-	LightBlock(LightBlock&& other) =delete;
-	LightBlock& operator=(const LightBlock& other) = delete;
-	LightBlock& operator=(LightBlock&& other) = delete;
-
 	// private push back functions
 	void addLight(const DirectionalLight& light);
 	void addLight(DirectionalLight&& light);

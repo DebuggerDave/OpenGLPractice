@@ -15,8 +15,9 @@
 #include <unordered_set>
 #include <memory>
 #include <algorithm>
+#include <utility>
 
-Shader::Shader() : id(0) {}
+Shader::Shader() noexcept : id(0) {}
 
 Shader::Shader(std::string&& vertex_path, std::string&& fragment_path, std::string&& geometry_path)
 {
@@ -31,6 +32,21 @@ Shader::Shader(const std::string& vertex_path, const std::string& fragment_path,
 Shader::~Shader() {
 	resetProgram();
 }
+
+Shader::Shader(Shader&& other) noexcept :
+	id(std::exchange(other.id, 0)),
+	vertex_num_injected{other.vertex_num_injected},
+	fragment_num_injected{other.fragment_num_injected},
+	geometry_num_injected{other.geometry_num_injected},
+	light_block{std::move(other.light_block)},
+	lit_programs{std::move(other.lit_programs)},
+	vertex_code{std::move(other.vertex_code)},
+	fragment_code{std::move(other.fragment_code)},
+	geometry_code{std::move(other.geometry_code)},
+	vertex_path{std::move(other.vertex_path)},
+	fragment_path{std::move(other.fragment_path)},
+	geometry_path{std::move(other.geometry_path)}
+{}
 
 unsigned int Shader::getId() const
 {
@@ -217,7 +233,7 @@ bool Shader::compile()
 		GLuint light_block_index = glGetUniformBlockIndex(id, light_block->getName().c_str());
 		GLint actual_light_block_size{0};
 		glGetActiveUniformBlockiv(id, light_block_index, GL_UNIFORM_BLOCK_DATA_SIZE, &actual_light_block_size);
-		if (light_block->byteSize() != (size_t)actual_light_block_size) {
+		if (light_block->byteSize() != static_cast<size_t>(actual_light_block_size)) {
 			LOG("Light block sizes do not match")
 			success = false;
 		}
@@ -234,7 +250,7 @@ bool Shader::compile()
 
 void Shader::setBool(const std::string &name, bool value) const
 {
-	glUniform1i(glGetUniformLocation(id, name.c_str()), (int)value);
+	glUniform1i(glGetUniformLocation(id, name.c_str()), static_cast<int>(value));
 }
 
 void Shader::setInt(const std::string &name, int value) const
@@ -353,7 +369,7 @@ bool Shader::checkCompileErrors(const GLuint shader, const ProgramType type) con
 		glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
 		if (!success) {
 			glGetShaderInfoLog(shader, max_size, NULL, info_log);
-			updateLineNumbers((char*)info_log, (size_t)max_size, type);
+			updateLineNumbers(static_cast<char*>(info_log), static_cast<size_t>(max_size), type);
 			const std::string* code_path = nullptr;
 			switch (type) {
 				case ProgramType::Vertex:
