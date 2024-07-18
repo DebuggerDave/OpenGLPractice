@@ -23,7 +23,7 @@ LightColor::LightColor(const glm::vec4& ambient, const glm::vec4& diffuse, const
 Attenuation::Attenuation() :
 	constant{1.0f},
 	linear{0.0f},
-	quadratic{0.5f}
+	quadratic{0.01f}
 	{}
 
 DirectionalLight::DirectionalLight() :
@@ -36,8 +36,8 @@ SpotLight::SpotLight() :
 	attenuation{},
 	dir{glm::vec4(0.0f, -1.0f, 0.0f, 0.0f)},
 	pos{glm::vec4(0.0f)},
-	inner_angle_cosine{glm::cos(glm::radians(15.0f))},
-	outer_angle_cosine{glm::cos(glm::radians(25.0f))}
+	inner_angle_cosine{glm::cos(glm::radians(20.0f))},
+	outer_angle_cosine{glm::cos(glm::radians(70.0f))}
 	{}
 
 PointLight::PointLight() :

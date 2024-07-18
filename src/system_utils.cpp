@@ -67,6 +67,7 @@ GameData init()
 
 	// light_block
 	std::shared_ptr<LightBlock> light_block = std::make_shared<LightBlock>(1, 1, 1);
+	//light_block->updateColor(LightBlock::LightType::Directional, 0, LIGHT_BLACK);
 	light_block->updateColor(LightBlock::LightType::Spot, 0, LIGHT_BLACK);
 	light_block->updatePosition(LightBlock::LightType::Spot, 0, glm::vec4(camera->getPosition(), 1.0));
 	light_block->updateDirection(LightBlock::LightType::Spot, 0, glm::normalize(glm::vec4(camera->getFront(), 0.0)));
