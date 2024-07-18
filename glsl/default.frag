@@ -112,32 +112,31 @@ vec4 calc_light(vec4 light_to_frag_dir, vec4 diffuse_tex, vec4 specular_tex, vec
 }
 
 vec4 calc_light(vec3 light_to_frag_dir, vec4 diffuse_tex, vec4 specular_tex, vec4 ambient_light, vec4 diffuse_light, vec4 specular_light, bool shadow) {
-	vec3 camera_light_half_point = -better_normalize(light_to_frag_dir + better_normalize(vec3(frag_pos)));
-	float diffuse_scale = max(better_dot(vec3(norm), -light_to_frag_dir), 0.0);
-	float specular_alignment = max(better_dot(camera_light_half_point, vec3(norm)), 0.0);
+	const vec3 camera_light_half_point = -better_normalize(light_to_frag_dir + better_normalize(vec3(frag_pos)));
+	const float diffuse_scale = max(better_dot(vec3(norm), -light_to_frag_dir), 0.0);
+	const float specular_alignment = max(better_dot(camera_light_half_point, vec3(norm)), 0.0);
 	float specular_scale = pow(specular_alignment, material.shininess);
 	// make sure specular only affects surfaces with nonzero diffuse
 	specular_scale *= ceil(diffuse_scale);
 
 	float shadow_average = 0.0;
 	if (shadow) {
-		vec2 texelSize = 1.0 / textureSize(depth_map, 0);
-		float current_depth = light_space_pos.z;
+		const vec2 texelSize = 1.0 / textureSize(depth_map, 0);
 		// send values greater than 1.0 to 0.0
-		current_depth = clamp(current_depth, 0.0, 1.0);
+		const float current_depth = clamp(light_space_pos.z, 0.0, 1.0);
 		// iterate over a 3x3 grid around the corresponding texel
 		for (int x = -1; x <= 1; ++x) {
 			for (int y = -1; y <= 1; ++y) {
-				float texel = texture(depth_map, light_space_pos.xy + vec2(x, y) * texelSize).r;
+				const float texel = texture(depth_map, light_space_pos.xy + vec2(x, y) * texelSize).r;
 				shadow_average += (current_depth > texel) ? 1.0 : 0.0;
 			}
 		}
 		shadow_average /= 9.0;
 	}
 
-	vec4 ambient = diffuse_tex * ambient_light;
-	vec4 diffuse = diffuse_tex * diffuse_scale * diffuse_light;
-	vec4 specular = specular_tex * specular_scale * specular_light;
+	const vec4 ambient = diffuse_tex * ambient_light;
+	const vec4 diffuse = diffuse_tex * diffuse_scale * diffuse_light;
+	const vec4 specular = specular_tex * specular_scale * specular_light;
 
 	return ambient + ((diffuse + specular) * (1 - shadow_average));
 }
@@ -169,6 +168,6 @@ float unfuzzy(float val) {
 }
 
 float better_dot(vec3 one, vec3 two) {
-	float res = dot(one, two);
+	const float res = dot(one, two);
 	return unfuzzy(res);
 }
