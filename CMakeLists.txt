@@ -10,6 +10,15 @@ add_compile_options(
        $<$<CONFIG:DEBUG>:-ggdb3>
 )
 
+if (WIN32)
+       add_compile_options(
+              # assimp fix, UCRT isn't available in msys2/mingw64 for some reason, use a version before that
+              -D__MSVCRT_VERSION__=0xA00
+              # assimp has pragmas warnings, but we don't know what they are?
+              -Wno-error=unknown-pragmas
+       )
+endif()
+
 add_executable(opengl_practice)
 
 add_subdirectory(src)

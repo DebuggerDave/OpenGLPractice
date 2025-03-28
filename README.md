@@ -15,6 +15,8 @@ Learning OpenGL and some other stuff
 * Cmake 3.16
 
 ### How to Build
+* install mesa for OpenGL
+* install dlfcn for assimp
 * `git clone PROJECT_GIT_URL`
 * `cd OpenGLPractice`
 * `git submodule update --init --recursive`

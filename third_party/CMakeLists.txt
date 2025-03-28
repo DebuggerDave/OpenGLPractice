@@ -13,11 +13,23 @@ find_package(OpenGL REQUIRED)
 target_link_libraries(opengl_practice PRIVATE OpenGL::GL)
 
 # glfw
+if (WIN32)
+    target_compile_definitions(opengl_practice PRIVATE _GLFW_WIN32=True)
+    set(GLFW_BUILD_COCOA OFF CACHE BOOL "" FORCE)
+    set(GLFW_BUILD_WIN32 ON CACHE BOOL "" FORCE)
+    set(GLFW_BUILD_X11 OFF CACHE BOOL "" FORCE)
+    set(GLFW_BUILD_WAYLAND OFF CACHE BOOL "" FORCE)
+endif()
+set(GLFW_LIBRARY_TYPE "STATIC" CACHE STRING "" FORCE)
 set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+set(USE_MSVC_RUNTIME_LIBRARY_DLL OFF CACHE BOOL "" FORCE)
 add_subdirectory(glfw)
 target_link_libraries(opengl_practice PRIVATE glfw)
+if (WIN32)
+    target_link_libraries(glfw PRIVATE user32 gdi32)
+endif()
 
 # glad
 target_sources(opengl_practice PRIVATE ./glad/src/gl.c)
