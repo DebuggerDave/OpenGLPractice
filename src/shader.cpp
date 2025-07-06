@@ -16,6 +16,7 @@
 #include <memory>
 #include <algorithm>
 #include <utility>
+#include <cstring>
 
 Shader::Shader() noexcept : id(0) {}
 

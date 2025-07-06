@@ -269,10 +269,10 @@ void World::onPositionBlockIdDestruct(const Registry& registry, const Entity ent
 
 void World::connect() {
 	disconnect();
-	connections.push_back(world_registry.on_construct<Position>().connect<onPositionBlockIdConstruct>(this));
-	connections.push_back(world_registry.on_destroy<Position>().connect<onPositionBlockIdDestruct>(this));
-	connections.push_back(world_registry.on_construct<BlockId>().connect<onPositionBlockIdConstruct>(this));
-	connections.push_back(world_registry.on_destroy<BlockId>().connect<onPositionBlockIdDestruct>(this));
+	connections.push_back(world_registry.on_construct<Position>().connect<&World::onPositionBlockIdConstruct>(this));
+	connections.push_back(world_registry.on_destroy<Position>().connect<&World::onPositionBlockIdDestruct>(this));
+	connections.push_back(world_registry.on_construct<BlockId>().connect<&World::onPositionBlockIdConstruct>(this));
+	connections.push_back(world_registry.on_destroy<BlockId>().connect<&World::onPositionBlockIdDestruct>(this));
 }
 
 void World::disconnect() {
